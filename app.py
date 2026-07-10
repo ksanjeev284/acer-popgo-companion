@@ -1,5 +1,5 @@
 """
-Acer PopGo Companion — battery, DPI, and mouse info.
+Acer PopGo Companion — battery, charge status, DPI, and mouse info.
 
 Run:
   python app.py
@@ -21,6 +21,7 @@ from mouse_device import (
     LOW_BATTERY_PERCENT,
     MouseStatus,
     PopGoMouse,
+    PowerMode,
     StatusPoller,
 )
 
@@ -43,20 +44,22 @@ except ImportError:
 
 
 APP_NAME = "Acer PopGo Companion"
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.3.0"
 
-# Fixed window — sized so every control is visible without resizing
-WINDOW_W = 480
-WINDOW_H = 720
+# Outer window is fixed; content scrolls so every control is reachable
+WINDOW_W = 500
+WINDOW_H = 640
 
 ACER_GREEN = "#83B81A"
-ACER_DARK = "#1A1A1A"
-CARD_BG = "#242424"
+ACER_DARK = "#161616"
+CARD_BG = "#222222"
 MUTED = "#9A9A9A"
+BLUE = "#3498DB"
+YELLOW = "#F1C40F"
+RED = "#E74C3C"
 
 
 def app_base_dir() -> Path:
-    """Directory for config next to the script or frozen executable."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent
@@ -71,7 +74,12 @@ def load_config() -> dict:
             return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
         except Exception:
             pass
-    return {"dpi_index": None, "poll_seconds": 2.0, "start_minimized": False}
+    return {
+        "dpi_index": None,
+        "poll_seconds": 1.5,
+        "power_mode": "auto",
+        "start_minimized": False,
+    }
 
 
 def save_config(cfg: dict) -> None:
@@ -114,9 +122,7 @@ def set_windows_mouse_speed(speed: int) -> bool:
         try:
             import ctypes
 
-            ctypes.windll.user32.SystemParametersInfoW(
-                0x0071, 0, speed, 0x01 | 0x02
-            )
+            ctypes.windll.user32.SystemParametersInfoW(0x0071, 0, speed, 0x01 | 0x02)
         except Exception:
             pass
         return True
@@ -128,11 +134,11 @@ def battery_color(percent: Optional[int]) -> str:
     if percent is None:
         return MUTED
     if percent <= 10:
-        return "#E74C3C"
+        return RED
     if percent <= 20:
         return "#E67E22"
     if percent <= 50:
-        return "#F1C40F"
+        return YELLOW
     return ACER_GREEN
 
 
@@ -142,7 +148,7 @@ def make_tray_image(
     size = 64
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    color = "#3498DB" if charging else battery_color(percent)
+    color = BLUE if charging else battery_color(percent)
     draw.rounded_rectangle((10, 18, 48, 46), radius=6, outline=color, width=3)
     draw.rectangle((48, 26, 54, 38), fill=color)
     if percent is not None:
@@ -150,7 +156,6 @@ def make_tray_image(
         if fill_w > 0:
             draw.rounded_rectangle((14, 22, 14 + fill_w, 42), radius=3, fill=color)
     if charging:
-        # simple bolt
         draw.polygon([(30, 16), (22, 34), (29, 34), (26, 48), (38, 28), (31, 28)], fill=color)
     return img
 
@@ -170,7 +175,6 @@ class PopGoApp(ctk.CTk):
         self.title(f"{APP_NAME}  v{APP_VERSION}")
         self.configure(fg_color=ACER_DARK)
 
-        # Fixed size + fixed corners (not user-resizable)
         self.resizable(False, False)
         try:
             self.minsize(WINDOW_W, WINDOW_H)
@@ -189,113 +193,133 @@ class PopGoApp(ctk.CTk):
                 self.mouse.set_tracked_dpi_index(int(self.cfg["dpi_index"]))
             except (TypeError, ValueError):
                 pass
+        mode = self.cfg.get("power_mode", "auto")
+        if mode in ("auto", "charging", "battery", "full"):
+            self.mouse.set_power_override(mode)  # type: ignore[arg-type]
 
         self._tray = None
         self._tray_thread: Optional[threading.Thread] = None
         self._closing = False
-        # Fire low-battery toast once per discharge cycle at ~10%
         self._low_battery_notified = False
+        self._power_btns: dict[str, ctk.CTkButton] = {}
 
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        interval = float(self.cfg.get("poll_seconds", 2.0))
+        interval = float(self.cfg.get("poll_seconds", 1.5))
         self.poller = StatusPoller(self.mouse, self._on_status, interval=interval)
         self.poller.start()
 
-        self.after(100, lambda: self._on_status(self.mouse.refresh()))
-        # Re-assert geometry after first layout pass
-        self.after(50, lambda: center_window(self, WINDOW_W, WINDOW_H))
+        self.after(80, lambda: self._on_status(self.mouse.refresh()))
+        self.after(40, lambda: center_window(self, WINDOW_W, WINDOW_H))
 
         if HAS_TRAY:
             self.after(300, self._start_tray)
 
     # ------------------------------------------------------------------- UI
-    def _card(self, parent: ctk.CTkBaseClass, **pack_kw) -> ctk.CTkFrame:
+    def _card(self, parent, **pack_kw) -> ctk.CTkFrame:
         f = ctk.CTkFrame(parent, fg_color=CARD_BG, corner_radius=10)
-        defaults = {"fill": "x", "padx": 14, "pady": 5}
+        defaults = {"fill": "x", "padx": 10, "pady": 4}
         defaults.update(pack_kw)
         f.pack(**defaults)
         return f
 
-    def _section(self, parent: ctk.CTkBaseClass, title: str) -> None:
+    def _h(self, parent, text: str) -> None:
         ctk.CTkLabel(
             parent,
-            text=title,
+            text=text,
             font=ctk.CTkFont(size=10, weight="bold"),
             text_color=MUTED,
-        ).pack(anchor="w", padx=12, pady=(10, 0))
+        ).pack(anchor="w", padx=10, pady=(8, 0))
 
     def _build_ui(self) -> None:
-        # Header
-        header = ctk.CTkFrame(self, fg_color="transparent")
-        header.pack(fill="x", padx=14, pady=(12, 4))
+        # Fixed header (always visible)
+        top = ctk.CTkFrame(self, fg_color="transparent")
+        top.pack(fill="x", padx=12, pady=(10, 0))
         ctk.CTkLabel(
-            header,
+            top,
             text="Acer PopGo",
-            font=ctk.CTkFont(size=20, weight="bold"),
+            font=ctk.CTkFont(size=18, weight="bold"),
             text_color="white",
-        ).pack(anchor="w")
+        ).pack(side="left")
         ctk.CTkLabel(
-            header,
-            text=f"Companion  ·  v{APP_VERSION}  ·  battery & DPI",
+            top,
+            text=f"v{APP_VERSION}",
             font=ctk.CTkFont(size=11),
             text_color=MUTED,
-        ).pack(anchor="w")
+        ).pack(side="left", padx=(8, 0), pady=(4, 0))
+
+        # Scrollable body — guarantees every option is reachable
+        self.scroll = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+            scrollbar_button_color="#333333",
+            scrollbar_button_hover_color="#555555",
+        )
+        self.scroll.pack(fill="both", expand=True, padx=4, pady=(6, 8))
+        body = self.scroll
 
         # Connection
-        conn = self._card(self, pady=(6, 5))
+        conn = self._card(body, pady=(2, 4))
+        inner = ctk.CTkFrame(conn, fg_color="transparent")
+        inner.pack(fill="x", padx=8, pady=6)
         self.conn_dot = ctk.CTkLabel(
-            conn, text="●", font=ctk.CTkFont(size=12), text_color="#E74C3C", width=16
+            inner, text="●", font=ctk.CTkFont(size=12), text_color=RED, width=14
         )
-        self.conn_dot.pack(side="left", padx=(10, 4), pady=8)
+        self.conn_dot.pack(side="left")
         self.conn_label = ctk.CTkLabel(
-            conn,
-            text="Searching for mouse…",
+            inner,
+            text="Searching…",
             font=ctk.CTkFont(size=12),
             text_color="white",
             anchor="w",
         )
-        self.conn_label.pack(side="left", fill="x", expand=True, pady=8)
+        self.conn_label.pack(side="left", fill="x", expand=True, padx=6)
         ctk.CTkButton(
-            conn,
+            inner,
             text="Refresh",
-            width=72,
+            width=70,
             height=26,
             font=ctk.CTkFont(size=11),
             fg_color=ACER_GREEN,
             hover_color="#6FA016",
             text_color="black",
             command=self._manual_refresh,
-        ).pack(side="right", padx=10, pady=6)
+        ).pack(side="right")
 
-        # Battery
-        bat = self._card(self)
-        self._section(bat, "BATTERY")
+        # Battery + charge
+        bat = self._card(body)
+        self._h(bat, "BATTERY & CHARGING")
         row = ctk.CTkFrame(bat, fg_color="transparent")
-        row.pack(fill="x", padx=12, pady=(2, 2))
+        row.pack(fill="x", padx=10, pady=(2, 0))
         self.bat_value = ctk.CTkLabel(
-            row, text="—", font=ctk.CTkFont(size=34, weight="bold"), text_color="white"
+            row, text="—", font=ctk.CTkFont(size=32, weight="bold"), text_color="white"
         )
         self.bat_value.pack(side="left")
-        ctk.CTkLabel(
-            row,
-            text=f"  ·  {BATTERY_CAPACITY_MAH} mAh",
-            font=ctk.CTkFont(size=11),
-            text_color=MUTED,
-        ).pack(side="left", pady=(10, 0))
+        right = ctk.CTkFrame(row, fg_color="transparent")
+        right.pack(side="left", fill="x", expand=True, padx=(10, 0))
         self.charge_badge = ctk.CTkLabel(
-            row,
-            text="  ·  —",
-            font=ctk.CTkFont(size=12, weight="bold"),
+            right,
+            text="—",
+            font=ctk.CTkFont(size=14, weight="bold"),
             text_color=MUTED,
+            anchor="w",
         )
-        self.charge_badge.pack(side="left", pady=(10, 0))
+        self.charge_badge.pack(anchor="w")
+        ctk.CTkLabel(
+            right,
+            text=f"{BATTERY_CAPACITY_MAH} mAh pack",
+            font=ctk.CTkFont(size=10),
+            text_color=MUTED,
+            anchor="w",
+        ).pack(anchor="w")
+
         self.bat_bar = ctk.CTkProgressBar(
-            bat, height=10, progress_color=ACER_GREEN, fg_color="#333333"
+            bat, height=12, progress_color=ACER_GREEN, fg_color="#333333"
         )
-        self.bat_bar.pack(fill="x", padx=12, pady=(0, 4))
+        self.bat_bar.pack(fill="x", padx=10, pady=(6, 4))
         self.bat_bar.set(0)
+
         self.charge_status = ctk.CTkLabel(
             bat,
             text="Power: detecting…",
@@ -303,41 +327,85 @@ class PopGoApp(ctk.CTk):
             text_color="white",
             anchor="w",
         )
-        self.charge_status.pack(anchor="w", padx=12, pady=(0, 2))
-        self.bat_status = ctk.CTkLabel(
+        self.charge_status.pack(anchor="w", padx=10, pady=(0, 0))
+        self.charge_detail = ctk.CTkLabel(
             bat,
-            text="Waiting for HID readout…",
-            font=ctk.CTkFont(size=11),
-            text_color=MUTED,
-            anchor="w",
-        )
-        self.bat_status.pack(anchor="w", padx=12, pady=(0, 10))
-
-        # DPI
-        dpi = self._card(self)
-        self._section(dpi, "SENSITIVITY (DPI)")
-        self.dpi_value = ctk.CTkLabel(
-            dpi, text="Set level below", font=ctk.CTkFont(size=24, weight="bold"), text_color="white"
-        )
-        self.dpi_value.pack(anchor="w", padx=12, pady=(0, 2))
-        ctk.CTkLabel(
-            dpi,
-            text="Use the mouse DPI button, then mark the active step:",
+            text="",
             font=ctk.CTkFont(size=10),
             text_color=MUTED,
-            wraplength=WINDOW_W - 56,
-            justify="left",
             anchor="w",
-        ).pack(anchor="w", padx=12, pady=(0, 4))
+            wraplength=WINDOW_W - 50,
+            justify="left",
+        )
+        self.charge_detail.pack(anchor="w", padx=10, pady=(0, 2))
+        self.bat_status = ctk.CTkLabel(
+            bat,
+            text="Waiting for HID…",
+            font=ctk.CTkFont(size=10),
+            text_color=MUTED,
+            anchor="w",
+            wraplength=WINDOW_W - 50,
+            justify="left",
+        )
+        self.bat_status.pack(anchor="w", padx=10, pady=(0, 4))
 
-        self.dpi_buttons_frame = ctk.CTkFrame(dpi, fg_color="transparent")
-        self.dpi_buttons_frame.pack(fill="x", padx=8, pady=(0, 2))
+        # Power mode override (fixes wrong auto detection)
+        ctk.CTkLabel(
+            bat,
+            text="Power mode (auto uses device + battery trend):",
+            font=ctk.CTkFont(size=10),
+            text_color=MUTED,
+            anchor="w",
+        ).pack(anchor="w", padx=10, pady=(2, 2))
+        mode_row = ctk.CTkFrame(bat, fg_color="transparent")
+        mode_row.pack(fill="x", padx=8, pady=(0, 8))
+        for key, label in (
+            ("auto", "Auto"),
+            ("charging", "Charging"),
+            ("battery", "On battery"),
+            ("full", "Full"),
+        ):
+            btn = ctk.CTkButton(
+                mode_row,
+                text=label,
+                height=28,
+                font=ctk.CTkFont(size=11),
+                fg_color="#333333",
+                hover_color="#444444",
+                text_color="white",
+                command=lambda m=key: self._set_power_mode(m),  # type: ignore[misc]
+            )
+            btn.pack(side="left", expand=True, fill="x", padx=2)
+            self._power_btns[key] = btn
+        self._highlight_power_mode(self.mouse.get_power_override())
+
+        # DPI
+        dpi = self._card(body)
+        self._h(dpi, "SENSITIVITY (DPI)")
+        self.dpi_value = ctk.CTkLabel(
+            dpi,
+            text="Set level below",
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color="white",
+            anchor="w",
+        )
+        self.dpi_value.pack(anchor="w", padx=10, pady=(0, 2))
+        ctk.CTkLabel(
+            dpi,
+            text="Press the mouse DPI button, then mark the active step:",
+            font=ctk.CTkFont(size=10),
+            text_color=MUTED,
+            anchor="w",
+            wraplength=WINDOW_W - 50,
+        ).pack(anchor="w", padx=10, pady=(0, 4))
+
+        grid = ctk.CTkFrame(dpi, fg_color="transparent")
+        grid.pack(fill="x", padx=6, pady=(0, 2))
         self._dpi_btns: list[ctk.CTkButton] = []
         for i, level in enumerate(DPI_LEVELS):
             btn = ctk.CTkButton(
-                self.dpi_buttons_frame,
+                grid,
                 text=str(level),
-                width=68,
                 height=28,
                 font=ctk.CTkFont(size=11),
                 fg_color="#333333",
@@ -345,10 +413,10 @@ class PopGoApp(ctk.CTk):
                 text_color="white",
                 command=lambda idx=i: self._select_dpi(idx),
             )
-            btn.grid(row=i // 4, column=i % 4, padx=3, pady=3, sticky="ew")
+            btn.grid(row=i // 4, column=i % 4, padx=2, pady=2, sticky="ew")
             self._dpi_btns.append(btn)
         for c in range(4):
-            self.dpi_buttons_frame.grid_columnconfigure(c, weight=1)
+            grid.grid_columnconfigure(c, weight=1)
 
         ctk.CTkButton(
             dpi,
@@ -359,16 +427,20 @@ class PopGoApp(ctk.CTk):
             hover_color="#6FA016",
             text_color="black",
             command=self._cycle_dpi,
-        ).pack(fill="x", padx=12, pady=(4, 10))
+        ).pack(fill="x", padx=10, pady=(4, 8))
 
-        # Pointer speed (Windows only full support)
-        win = self._card(self)
-        self._section(win, "POINTER SPEED (OS)")
+        # Pointer speed
+        win = self._card(body)
+        self._h(win, "POINTER SPEED (OS)")
         if IS_WINDOWS:
             self.win_speed_label = ctk.CTkLabel(
-                win, text="Speed: — / 20", font=ctk.CTkFont(size=12), text_color="white", anchor="w"
+                win,
+                text="Speed: — / 20",
+                font=ctk.CTkFont(size=12),
+                text_color="white",
+                anchor="w",
             )
-            self.win_speed_label.pack(anchor="w", padx=12, pady=(2, 0))
+            self.win_speed_label.pack(anchor="w", padx=10, pady=(2, 0))
             self.win_slider = ctk.CTkSlider(
                 win,
                 from_=1,
@@ -379,7 +451,7 @@ class PopGoApp(ctk.CTk):
                 button_color=ACER_GREEN,
                 command=self._on_win_speed_slide,
             )
-            self.win_slider.pack(fill="x", padx=12, pady=6)
+            self.win_slider.pack(fill="x", padx=10, pady=6)
             speed, enhanced = windows_mouse_speed()
             if speed is not None:
                 self.win_slider.set(speed)
@@ -389,54 +461,63 @@ class PopGoApp(ctk.CTk):
                 )
             ctk.CTkLabel(
                 win,
-                text="Windows mouse speed only — does not change sensor DPI.",
+                text="Windows pointer speed only — not sensor DPI.",
                 font=ctk.CTkFont(size=10),
                 text_color=MUTED,
                 anchor="w",
-            ).pack(anchor="w", padx=12, pady=(0, 10))
+            ).pack(anchor="w", padx=10, pady=(0, 8))
         else:
             os_name = "macOS" if IS_MAC else "Linux" if IS_LINUX else platform.system()
             ctk.CTkLabel(
                 win,
-                text=f"OS pointer settings are managed by {os_name} System Settings.\n"
-                "Sensor DPI is still tracked above.",
+                text=f"Managed by {os_name} system settings.",
                 font=ctk.CTkFont(size=11),
                 text_color=MUTED,
-                justify="left",
                 anchor="w",
-                wraplength=WINDOW_W - 56,
-            ).pack(anchor="w", padx=12, pady=(4, 10))
+            ).pack(anchor="w", padx=10, pady=(4, 8))
 
         # Device
-        det = self._card(self, pady=(5, 12))
-        self._section(det, "DEVICE")
+        det = self._card(body, pady=(4, 10))
+        self._h(det, "DEVICE")
         self.detail_label = ctk.CTkLabel(
             det,
-            text=(
-                f"USB 32C2:0066 · 2.4 GHz · {platform.system()}\n"
-                f"Firmware: — · Pack: {BATTERY_CAPACITY_MAH} mAh"
-            ),
+            text=f"USB 32C2:0066 · {platform.system()}",
             font=ctk.CTkFont(size=11),
             text_color="white",
             justify="left",
             anchor="w",
-            wraplength=WINDOW_W - 56,
+            wraplength=WINDOW_W - 50,
         )
-        self.detail_label.pack(anchor="w", padx=12, pady=(2, 4))
+        self.detail_label.pack(anchor="w", padx=10, pady=(2, 2))
         self.error_label = ctk.CTkLabel(
             det,
             text="",
             font=ctk.CTkFont(size=10),
-            text_color="#E74C3C",
-            wraplength=WINDOW_W - 56,
+            text_color=RED,
+            wraplength=WINDOW_W - 50,
             justify="left",
             anchor="w",
         )
-        self.error_label.pack(anchor="w", padx=12, pady=(0, 10))
+        self.error_label.pack(anchor="w", padx=10, pady=(0, 8))
 
     # --------------------------------------------------------------- handlers
     def _manual_refresh(self) -> None:
         self._on_status(self.mouse.refresh())
+
+    def _set_power_mode(self, mode: str) -> None:
+        m: PowerMode = mode  # type: ignore[assignment]
+        self.mouse.set_power_override(m)
+        self.cfg["power_mode"] = mode
+        save_config(self.cfg)
+        self._highlight_power_mode(m)
+        self._on_status(self.mouse.refresh())
+
+    def _highlight_power_mode(self, mode: str) -> None:
+        for key, btn in self._power_btns.items():
+            if key == mode:
+                btn.configure(fg_color=ACER_GREEN, text_color="black", hover_color="#6FA016")
+            else:
+                btn.configure(fg_color="#333333", text_color="white", hover_color="#444444")
 
     def _select_dpi(self, index: int) -> None:
         self.mouse.set_tracked_dpi_index(index)
@@ -481,42 +562,40 @@ class PopGoApp(ctk.CTk):
         if status.connected:
             self.conn_dot.configure(text_color=ACER_GREEN)
             name = status.product_name
-            if len(name) > 36:
-                name = name[:33] + "…"
+            if len(name) > 34:
+                name = name[:31] + "…"
             self.conn_label.configure(text=f"Connected · {name}")
         else:
-            self.conn_dot.configure(text_color="#E74C3C")
+            self.conn_dot.configure(text_color=RED)
             self.conn_label.configure(text="Not connected — plug in USB receiver")
 
         pct = status.battery_percent
         self._update_charge_ui(status)
+
         if pct is not None:
             self.bat_value.configure(text=f"{pct}%", text_color=battery_color(pct))
             self.bat_bar.set(pct / 100.0)
-            bar_color = (
-                "#3498DB" if status.is_charging else battery_color(pct)
+            self.bat_bar.configure(
+                progress_color=BLUE if status.is_charging else battery_color(pct)
             )
-            self.bat_bar.configure(progress_color=bar_color)
             tips = {
-                "critical": f"Critical — {LOW_BATTERY_PERCENT}% or less. Plug in to charge.",
-                "low": "Battery low — plan to recharge soon.",
+                "critical": f"Critical ≤{LOW_BATTERY_PERCENT}% — plug in USB-C.",
+                "low": "Battery low — plan to recharge.",
                 "medium": "Battery OK.",
                 "good": "Battery healthy.",
                 "high": "Battery strong.",
-                "full": "Battery full / near full.",
+                "full": "Battery full.",
             }
             tip = tips.get(status.battery_level_name, "")
             if status.is_charging:
-                tip = "USB power connected — battery is charging."
+                tip = "Charging — leave USB-C plugged in."
             elif status.is_full:
-                tip = "Charge complete — you can unplug."
+                tip = "Full — safe to unplug."
             self.bat_status.configure(text=tip)
             self._maybe_notify_low_battery(status)
         else:
             self.bat_value.configure(text="—", text_color=MUTED)
             self.bat_bar.set(0)
-            self.charge_badge.configure(text="  ·  —", text_color=MUTED)
-            self.charge_status.configure(text="Power: —", text_color=MUTED)
             self.bat_status.configure(text=status.last_error or "No battery data yet")
 
         idx = status.dpi_index
@@ -529,24 +608,27 @@ class PopGoApp(ctk.CTk):
             self.dpi_value.configure(text="Set level below")
 
         fw = status.firmware or "—"
+        raw = ""
+        if status.raw_status and len(status.raw_status) >= 4:
+            raw = "  raw[" + " ".join(f"{b:02X}" for b in status.raw_status[:8]) + "]"
         self.detail_label.configure(
             text=(
-                f"USB 32C2:0066 (OnMicro 2.4G)  ·  {platform.system()} {platform.machine()}\n"
-                f"Firmware: {fw}  ·  Pack: {BATTERY_CAPACITY_MAH} mAh  ·  "
-                f"Updated: {self._fmt_age(status.last_update)}\n"
-                f"DPI steps: {', '.join(str(d) for d in DPI_LEVELS)}"
+                f"USB 32C2:0066 · {platform.system()} {platform.machine()}\n"
+                f"Firmware {fw} · {BATTERY_CAPACITY_MAH} mAh · "
+                f"Updated {self._fmt_age(status.last_update)}{raw}\n"
+                f"DPI: {', '.join(str(d) for d in DPI_LEVELS)}"
             )
         )
         self.error_label.configure(text=status.last_error or "")
+        self._highlight_power_mode(status.override_mode)
 
         if HAS_TRAY and self._tray is not None:
             try:
                 self._tray.icon = make_tray_image(pct, status.is_charging)
-                charge = status.charge_label if status.connected else "disconnected"
                 self._tray.title = (
-                    f"PopGo  {pct}%  ·  {charge}"
+                    f"PopGo {pct}% · {status.charge_label}"
                     if pct is not None
-                    else f"PopGo · {charge}"
+                    else f"PopGo · {status.charge_label}"
                 )
             except Exception:
                 pass
@@ -554,33 +636,29 @@ class PopGoApp(ctk.CTk):
     def _update_charge_ui(self, status: MouseStatus) -> None:
         src = status.power_source
         if src == "charging":
-            self.charge_badge.configure(text="  ·  ⚡ Charging", text_color="#3498DB")
-            self.charge_status.configure(
-                text="Power: Charging (cable / charge mode)",
-                text_color="#3498DB",
-            )
+            self.charge_badge.configure(text="⚡ Charging", text_color=BLUE)
+            self.charge_status.configure(text="Power: Charging", text_color=BLUE)
         elif src == "full":
-            self.charge_badge.configure(text="  ·  Full", text_color=ACER_GREEN)
-            self.charge_status.configure(
-                text="Power: Fully charged",
-                text_color=ACER_GREEN,
-            )
+            self.charge_badge.configure(text="Full", text_color=ACER_GREEN)
+            self.charge_status.configure(text="Power: Fully charged", text_color=ACER_GREEN)
         elif src == "battery":
-            self.charge_badge.configure(text="  ·  On battery", text_color="#F1C40F")
+            self.charge_badge.configure(text="On battery", text_color=YELLOW)
             self.charge_status.configure(
-                text="Power: Not charging · battery in use",
-                text_color="#F1C40F",
+                text="Power: Not charging · battery in use", text_color=YELLOW
             )
         else:
-            self.charge_badge.configure(text="  ·  —", text_color=MUTED)
+            self.charge_badge.configure(text="Detecting…", text_color=MUTED)
             self.charge_status.configure(text="Power: detecting…", text_color=MUTED)
 
+        detail = status.charge_detail or ""
+        if status.override_mode != "auto":
+            detail = f"Manual: {status.override_mode}" + (f" · {detail}" if detail else "")
+        self.charge_detail.configure(text=detail)
+
     def _maybe_notify_low_battery(self, status: MouseStatus) -> None:
-        """Notify once when battery hits ~10% while not charging."""
         pct = status.battery_percent
         if pct is None:
             return
-        # Re-arm after recovery or when user starts charging
         if pct > LOW_BATTERY_PERCENT + 5 or status.is_charging:
             self._low_battery_notified = False
             return
@@ -604,9 +682,8 @@ class PopGoApp(ctk.CTk):
         title = "Acer PopGo — battery almost empty"
         msg = (
             f"Battery is at {pct}% (critical ≤{LOW_BATTERY_PERCENT}%). "
-            "Not charging — plug in the USB-C cable."
+            "Not charging — plug in USB-C."
         )
-        # Always try to surface in the UI / tray title
         try:
             self.bat_status.configure(text=msg)
         except Exception:
@@ -616,7 +693,6 @@ class PopGoApp(ctk.CTk):
             try:
                 import subprocess
 
-                # Escape for PowerShell single-quoted strings
                 t = title.replace("'", "''")
                 m = msg.replace("'", "''")
                 ps = (

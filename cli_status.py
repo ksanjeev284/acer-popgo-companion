@@ -23,6 +23,8 @@ def main() -> int:
                 "is_full": s.is_full,
                 "power_source": s.power_source,
                 "charge_label": s.charge_label,
+                "charge_detail": s.charge_detail,
+                "override_mode": s.override_mode,
                 "dpi": s.dpi,
                 "dpi_index": s.dpi_index,
                 "firmware": s.firmware,

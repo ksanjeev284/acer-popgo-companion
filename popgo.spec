@@ -90,8 +90,8 @@ if sys.platform == "darwin":
         info_plist={
             "CFBundleName": "Acer PopGo Companion",
             "CFBundleDisplayName": "Acer PopGo Companion",
-            "CFBundleShortVersionString": "1.2.0",
-            "CFBundleVersion": "1.2.0",
+            "CFBundleShortVersionString": "1.3.0",
+            "CFBundleVersion": "1.3.0",
             "NSHighResolutionCapable": True,
             "LSHumanReadableCopyright": "MIT License",
         },
