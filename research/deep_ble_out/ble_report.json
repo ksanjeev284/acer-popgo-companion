@@ -1,0 +1,205 @@
+{
+  "address": "F900C6021401",
+  "services": [
+    {
+      "uuid": "00001800-0000-1000-8000-00805f9b34fb",
+      "name": "Generic Access",
+      "characteristics": [
+        {
+          "uuid": "00002a00-0000-1000-8000-00805f9b34fb",
+          "name": "Device Name",
+          "props": 2,
+          "prop_names": [
+            "Read"
+          ],
+          "value": {
+            "hex": "4163657220506f70476f204254352e3400000000000000000000000000",
+            "list": [
+              65,
+              99,
+              101,
+              114,
+              32,
+              80,
+              111,
+              112,
+              71,
+              111,
+              32,
+              66,
+              84,
+              53,
+              46,
+              52,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "text": "Acer PopGo BT5.4"
+          }
+        },
+        {
+          "uuid": "00002a01-0000-1000-8000-00805f9b34fb",
+          "name": "Appearance",
+          "props": 2,
+          "prop_names": [
+            "Read"
+          ],
+          "value": {
+            "hex": "c203",
+            "list": [
+              194,
+              3
+            ],
+            "appearance": 962,
+            "appearance_hex": "0x03C2",
+            "appearance_name": "HID Generic"
+          }
+        },
+        {
+          "uuid": "00002a04-0000-1000-8000-00805f9b34fb",
+          "name": "Peripheral Preferred Connection Parameters",
+          "props": 2,
+          "prop_names": [
+            "Read"
+          ],
+          "value": {
+            "hex": "060006002c00d800",
+            "list": [
+              6,
+              0,
+              6,
+              0,
+              44,
+              0,
+              216,
+              0
+            ],
+            "conn_params": {
+              "interval_min_ms": 7.5,
+              "interval_max_ms": 7.5,
+              "latency": 44,
+              "timeout_ms": 2160
+            }
+          }
+        }
+      ]
+    },
+    {
+      "uuid": "00001801-0000-1000-8000-00805f9b34fb",
+      "name": "Generic Attribute",
+      "characteristics": [
+        {
+          "uuid": "00002a05-0000-1000-8000-00805f9b34fb",
+          "name": "Service Changed",
+          "props": 32,
+          "prop_names": [
+            "Indicate"
+          ],
+          "descriptors": [
+            "00002902-0000-1000-8000-00805f9b34fb"
+          ]
+        }
+      ]
+    },
+    {
+      "uuid": "0000180a-0000-1000-8000-00805f9b34fb",
+      "name": "Device Information",
+      "characteristics": [
+        {
+          "uuid": "00002a50-0000-1000-8000-00805f9b34fb",
+          "name": "PnP ID",
+          "props": 2,
+          "prop_names": [
+            "Read"
+          ],
+          "value": {
+            "hex": "02c23226000001",
+            "list": [
+              2,
+              194,
+              50,
+              38,
+              0,
+              0,
+              1
+            ],
+            "pnp": {
+              "vendor_id_source": 2,
+              "vendor_id": "0x32C2",
+              "product_id": "0x0026",
+              "product_version": "0x0100"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "uuid": "0000180f-0000-1000-8000-00805f9b34fb",
+      "name": "Battery Service",
+      "characteristics": [
+        {
+          "uuid": "00002a19-0000-1000-8000-00805f9b34fb",
+          "name": "Battery Level",
+          "props": 18,
+          "prop_names": [
+            "Read",
+            "Notify"
+          ],
+          "value": {
+            "hex": "64",
+            "list": [
+              100
+            ],
+            "battery_percent": 100
+          },
+          "descriptors": [
+            "00002902-0000-1000-8000-00805f9b34fb"
+          ]
+        }
+      ]
+    },
+    {
+      "uuid": "00001812-0000-1000-8000-00805f9b34fb",
+      "name": "HID over GATT",
+      "characteristics": [],
+      "chars_status": "3"
+    }
+  ],
+  "battery_notifies": [
+    {
+      "t": 1783700367.1453736,
+      "value": [
+        100
+      ]
+    },
+    {
+      "t": 1783700369.0878458,
+      "value": [
+        100
+      ]
+    },
+    {
+      "t": 1783700371.008479,
+      "value": [
+        100
+      ]
+    }
+  ],
+  "notes": [
+    "HID service 0x1812 may return ACCESS_DENIED while Windows Bluetooth stack owns HOGP.",
+    "Battery 0x2A19 is the best SOC source when connected over BLE."
+  ],
+  "name": "Acer PopGo BT5.4",
+  "connection_status": 1
+}

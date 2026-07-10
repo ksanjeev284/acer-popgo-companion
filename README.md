@@ -2,7 +2,7 @@
 
 **Unofficial companion app for the Acer PopGo wireless mouse** — live battery %, DPI tracker, and OS pointer tools.
 
-Acer does not ship software for this mouse. This open-source tool talks to the 2.4 GHz USB receiver over a reverse-engineered HID protocol.
+Acer does not ship software for this mouse. This open-source tool talks to the **2.4 GHz USB receiver** (HID) and, on Windows, **Bluetooth LE** (standard Battery Service) when you pair as *Acer PopGo BT5.4*.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/ksanjeev284/acer-popgo-companion)](https://github.com/ksanjeev284/acer-popgo-companion/releases)
@@ -60,8 +60,8 @@ Full details: [`docs/HARDWARE.md`](docs/HARDWARE.md) · 2.4G command map: [`docs
 
 | | |
 |--|--|
-| **Battery % on PC** | Yes — via reverse-engineered HID (Acer doesn’t ship an app for this) |
-| **Green charge LED** | On the **mouse only** — the LED is local hardware; the PC never receives that signal over the 2.4G dongle |
+| **Battery % on PC** | Yes — 2.4G HID (voltage + MCU %) and **Windows BLE GATT `0x2A19`** when paired over BT |
+| **Green charge LED** | On the **mouse only** — not reported over 2.4G or BLE |
 | **Software “is charging?”** | Not automatic — use the **Charging cable** switch (or wait for % to rise) |
 | **Software DPI change** | Not available — DPI is only the **physical DPI button** on the mouse |
 | **DPI list / tracking** | Yes — mark which step you set with the button |
@@ -73,7 +73,7 @@ The green LED when you plug USB-C is normal. It is driven by the charge circuit 
 
 | Feature | Details |
 |--------|---------|
-| **Live battery %** | Read from the mouse MCU over HID |
+| **Live battery %** | 2.4G HID + voltage estimate; **BLE Battery Service** on Windows when connected as BT5.4 |
 | **Charging cable switch** | You mark cable connected (PC cannot see the green LED) |
 | **Fixed window** | Scrollable body so all controls fit |
 | **DPI tracker** | 800 → 6400 (8 steps); mark the active level after the hardware DPI button |

@@ -174,7 +174,7 @@ jobs:
           body: |
             ## Acer PopGo Companion ${{ steps.tag.outputs.name }}
 
-            Unofficial companion for the **Acer PopGo** wireless mouse — battery %, charging status, DPI tracker.
+            Unofficial companion for the **Acer PopGo** wireless mouse — battery %, tray, DPI tracker.
 
             ### Downloads
 
@@ -190,7 +190,7 @@ jobs:
 
             1. Download `AcerPopGoCompanion-windows-x64.exe`
             2. Run it (SmartScreen → More info → Run anyway if prompted)
-            3. Plug in the **2.4 GHz USB dongle** and wake the mouse
+            3. Plug in the **2.4 GHz USB dongle**, *or* pair **Acer PopGo BT5.4** over Bluetooth
 
             ### Linux
 
@@ -207,8 +207,9 @@ jobs:
 
             ### Notes
 
-            - Prefer the **2.4 GHz dongle** for battery/charge readout (`VID:PID 32C2:0066`)
-            - Use **Charging / On battery** buttons if Auto charge detection lags
+            - **2.4 GHz dongle** (`32C2:0066`): HID battery + LiPo voltage estimate
+            - **Windows BLE** (`32C2:0026` / Acer PopGo BT5.4): standard GATT Battery Level `0x2A19` (preferred when connected)
+            - Green charge LED and software DPI are **not** available over the radio (on-device only)
             - Not affiliated with Acer Inc. · MIT License
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

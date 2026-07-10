@@ -1,0 +1,495 @@
+{
+  "report_descriptors": [
+    {
+      "vid": "0x32C2",
+      "pid": "0x0066",
+      "usage_page": "0x1",
+      "usage": "0x6",
+      "product": "2.4G Mouse",
+      "interface": 0,
+      "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_00#8&2f0d590&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\\KBD",
+      "rd_len": 66,
+      "rd_hex": "05010906a101050719e029e715002501750195088102750895018103190029ff150026ff0075089506810005081901290515002501750195059102750395019103c0",
+      "decoded": [
+        "UsagePage(0x1 GenericDesktop)",
+        "Usage(0x6 Keyboard)",
+        "Collection(Application)",
+        "UsagePage(0x7 )",
+        "UsageMin(0xe0 )",
+        "UsageMax(0xe7 )",
+        "LogicalMin(0)",
+        "LogicalMax(1)",
+        "ReportSize(1)",
+        "ReportCount(8)",
+        "Input(0x2 Data,Var,Abs)",
+        "ReportSize(8)",
+        "ReportCount(1)",
+        "Input(0x3 Const,Var,Abs)",
+        "UsageMin(0x0 )",
+        "UsageMax(0xff )",
+        "LogicalMin(0)",
+        "LogicalMax(255)",
+        "ReportSize(8)",
+        "ReportCount(6)",
+        "Input(0x0 Data,Array,Abs)",
+        "UsagePage(0x8 )",
+        "UsageMin(0x1 )",
+        "UsageMax(0x5 )",
+        "LogicalMin(0)",
+        "LogicalMax(1)",
+        "ReportSize(1)",
+        "ReportCount(5)",
+        "Output(0x2 Data,Var,Abs)",
+        "ReportSize(3)",
+        "ReportCount(1)",
+        "Output(0x3 Const,Var,Abs)",
+        "End Collection"
+      ]
+    },
+    {
+      "vid": "0x32C2",
+      "pid": "0x0066",
+      "usage_page": "0xFFB5",
+      "usage": "0x1",
+      "product": "2.4G Mouse",
+      "interface": 1,
+      "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col02#8&26678e99&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+      "rd_len": 36,
+      "rd_hex": "06b5ff0901a10185b50902150026ff007508950781020902150026ff00750895079102c0",
+      "decoded": [
+        "UsagePage(0xffb5 VendorFFB5)",
+        "Usage(0x1 Vendor01)",
+        "Collection(Application)",
+        "ReportID(181)",
+        "Usage(0x2 )",
+        "LogicalMin(0)",
+        "LogicalMax(255)",
+        "ReportSize(8)",
+        "ReportCount(7)",
+        "Input(0x2 Data,Var,Abs)",
+        "Usage(0x2 )",
+        "LogicalMin(0)",
+        "LogicalMax(255)",
+        "ReportSize(8)",
+        "ReportCount(7)",
+        "Output(0x2 Data,Var,Abs)",
+        "End Collection"
+      ]
+    },
+    {
+      "vid": "0x32C2",
+      "pid": "0x0066",
+      "usage_page": "0xC",
+      "usage": "0x1",
+      "product": "2.4G Mouse",
+      "interface": 1,
+      "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col03#8&26678e99&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+      "rd_len": 25,
+      "rd_hex": "050c0901a101850119012aff03150126ff03751095018100c0",
+      "decoded": [
+        "UsagePage(0xc Consumer)",
+        "Usage(0x1 ConsumerControl)",
+        "Collection(Application)",
+        "ReportID(1)",
+        "UsageMin(0x1 ConsumerControl)",
+        "UsageMax(0x3ff )",
+        "LogicalMin(1)",
+        "LogicalMax(1023)",
+        "ReportSize(16)",
+        "ReportCount(1)",
+        "Input(0x0 Data,Array,Abs)",
+        "End Collection"
+      ]
+    },
+    {
+      "vid": "0x32C2",
+      "pid": "0x0066",
+      "usage_page": "0x1",
+      "usage": "0x80",
+      "product": "2.4G Mouse",
+      "interface": 1,
+      "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col04#8&26678e99&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+      "rd_len": 29,
+      "rd_hex": "05010980a10185031981298315002501750195038102750595018103c0",
+      "decoded": [
+        "UsagePage(0x1 GenericDesktop)",
+        "Usage(0x80 SystemControl)",
+        "Collection(Application)",
+        "ReportID(3)",
+        "UsageMin(0x81 )",
+        "UsageMax(0x83 )",
+        "LogicalMin(0)",
+        "LogicalMax(1)",
+        "ReportSize(1)",
+        "ReportCount(3)",
+        "Input(0x2 Data,Var,Abs)",
+        "ReportSize(5)",
+        "ReportCount(1)",
+        "Input(0x3 Const,Var,Abs)",
+        "End Collection"
+      ]
+    },
+    {
+      "vid": "0x32C2",
+      "pid": "0x0066",
+      "usage_page": "0x1",
+      "usage": "0x2",
+      "product": "2.4G Mouse",
+      "interface": 1,
+      "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col01#8&26678e99&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+      "rd_len": 75,
+      "rd_hex": "05010902a1010901a1008502050919012908150025017501950881020501093009311601f826ff07750c9502810609381581257f750895018106050c0a38021581257f750895018106c0c0",
+      "decoded": [
+        "UsagePage(0x1 GenericDesktop)",
+        "Usage(0x2 Mouse)",
+        "Collection(Application)",
+        "Usage(0x1 )",
+        "Collection(Physical)",
+        "ReportID(2)",
+        "UsagePage(0x9 )",
+        "UsageMin(0x1 )",
+        "UsageMax(0x8 )",
+        "LogicalMin(0)",
+        "LogicalMax(1)",
+        "ReportSize(1)",
+        "ReportCount(8)",
+        "Input(0x2 Data,Var,Abs)",
+        "UsagePage(0x1 GenericDesktop)",
+        "Usage(0x30 X)",
+        "Usage(0x31 Y)",
+        "LogicalMin(-2047)",
+        "LogicalMax(2047)",
+        "ReportSize(12)",
+        "ReportCount(2)",
+        "Input(0x6 Data,Var,Rel)",
+        "Usage(0x38 Wheel)",
+        "LogicalMin(-127)",
+        "LogicalMax(127)",
+        "ReportSize(8)",
+        "ReportCount(1)",
+        "Input(0x6 Data,Var,Rel)",
+        "UsagePage(0xc Consumer)",
+        "Usage(0x238 )",
+        "LogicalMin(-127)",
+        "LogicalMax(127)",
+        "ReportSize(8)",
+        "ReportCount(1)",
+        "Input(0x6 Data,Var,Rel)",
+        "End Collection",
+        "End Collection"
+      ]
+    },
+    {
+      "vid": "0x32C2",
+      "pid": "0x0026",
+      "usage_page": "0x1",
+      "usage": "0x2",
+      "product": "Acer PopGo BT5.4",
+      "interface": -1,
+      "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col01#a&1ea1bbb9&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+      "rd_len": 75,
+      "rd_hex": "05010902a1010901a1008501050919012908150025017501950881020501093009311601f826ff07750c9502810609381581257f750895018106050c0a38021581257f750895018106c0c0",
+      "decoded": [
+        "UsagePage(0x1 GenericDesktop)",
+        "Usage(0x2 Mouse)",
+        "Collection(Application)",
+        "Usage(0x1 )",
+        "Collection(Physical)",
+        "ReportID(1)",
+        "UsagePage(0x9 )",
+        "UsageMin(0x1 )",
+        "UsageMax(0x8 )",
+        "LogicalMin(0)",
+        "LogicalMax(1)",
+        "ReportSize(1)",
+        "ReportCount(8)",
+        "Input(0x2 Data,Var,Abs)",
+        "UsagePage(0x1 GenericDesktop)",
+        "Usage(0x30 X)",
+        "Usage(0x31 Y)",
+        "LogicalMin(-2047)",
+        "LogicalMax(2047)",
+        "ReportSize(12)",
+        "ReportCount(2)",
+        "Input(0x6 Data,Var,Rel)",
+        "Usage(0x38 Wheel)",
+        "LogicalMin(-127)",
+        "LogicalMax(127)",
+        "ReportSize(8)",
+        "ReportCount(1)",
+        "Input(0x6 Data,Var,Rel)",
+        "UsagePage(0xc Consumer)",
+        "Usage(0x238 )",
+        "LogicalMin(-127)",
+        "LogicalMax(127)",
+        "ReportSize(8)",
+        "ReportCount(1)",
+        "Input(0x6 Data,Var,Rel)",
+        "End Collection",
+        "End Collection"
+      ]
+    },
+    {
+      "vid": "0x32C2",
+      "pid": "0x0026",
+      "usage_page": "0xC",
+      "usage": "0x1",
+      "product": "Acer PopGo BT5.4",
+      "interface": -1,
+      "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col02#a&1ea1bbb9&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+      "rd_len": 25,
+      "rd_hex": "050c0901a101850219002aff03150026ff03751095018100c0",
+      "decoded": [
+        "UsagePage(0xc Consumer)",
+        "Usage(0x1 ConsumerControl)",
+        "Collection(Application)",
+        "ReportID(2)",
+        "UsageMin(0x0 )",
+        "UsageMax(0x3ff )",
+        "LogicalMin(0)",
+        "LogicalMax(1023)",
+        "ReportSize(16)",
+        "ReportCount(1)",
+        "Input(0x0 Data,Array,Abs)",
+        "End Collection"
+      ]
+    },
+    {
+      "vid": "0x32C2",
+      "pid": "0x0026",
+      "usage_page": "0x1",
+      "usage": "0x6",
+      "product": "Acer PopGo BT5.4",
+      "interface": -1,
+      "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col03#a&1ea1bbb9&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}\\KBD",
+      "rd_len": 67,
+      "rd_hex": "05010906a1018503050719e029e715002501750195088102750895018103190029ff150025ff75089506810005081901290515002501750195059102750395019103c0",
+      "decoded": [
+        "UsagePage(0x1 GenericDesktop)",
+        "Usage(0x6 Keyboard)",
+        "Collection(Application)",
+        "ReportID(3)",
+        "UsagePage(0x7 )",
+        "UsageMin(0xe0 )",
+        "UsageMax(0xe7 )",
+        "LogicalMin(0)",
+        "LogicalMax(1)",
+        "ReportSize(1)",
+        "ReportCount(8)",
+        "Input(0x2 Data,Var,Abs)",
+        "ReportSize(8)",
+        "ReportCount(1)",
+        "Input(0x3 Const,Var,Abs)",
+        "UsageMin(0x0 )",
+        "UsageMax(0xff )",
+        "LogicalMin(0)",
+        "LogicalMax(-1)",
+        "ReportSize(8)",
+        "ReportCount(6)",
+        "Input(0x0 Data,Array,Abs)",
+        "UsagePage(0x8 )",
+        "UsageMin(0x1 )",
+        "UsageMax(0x5 )",
+        "LogicalMin(0)",
+        "LogicalMax(1)",
+        "ReportSize(1)",
+        "ReportCount(5)",
+        "Output(0x2 Data,Var,Abs)",
+        "ReportSize(3)",
+        "ReportCount(1)",
+        "Output(0x3 Const,Var,Abs)",
+        "End Collection"
+      ]
+    }
+  ],
+  "vendor_while_ble": [
+    {
+      "path": "C2&PID_0066&MI_01&Col02#8&26678e99&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+      "cmd_01": [],
+      "cmd_04": [],
+      "cmd_20": [],
+      "cmd_23": [],
+      "cmd_2b": [],
+      "feature_b5_err": "read error",
+      "feature_01_err": "read error",
+      "feature_02_err": "read error"
+    }
+  ],
+  "windows_battery": {
+    "system": {
+      "charge": "NoSystemBattery",
+      "battery_percent": 100,
+      "line": "Online"
+    },
+    "bt_bat": [
+      {
+        "status": "OK",
+        "name": "HID-compliant consumer control device",
+        "id": "HID\\VID_32C2&PID_0066&MI_01&COL03\\8&26678E99&0&0002",
+        "class": "HIDClass"
+      },
+      {
+        "status": "OK",
+        "name": "Bluetooth Low Energy GATT compliant HID device",
+        "id": "BTHLEDEVICE\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401\\9&140BE95D&0&0013",
+        "class": "HIDClass"
+      },
+      {
+        "status": "OK",
+        "name": "HID-compliant mouse",
+        "id": "HID\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401&COL01\\A&1EA1BBB9&0&0000",
+        "class": "Mouse"
+      },
+      {
+        "status": "OK",
+        "name": "USB Input Device",
+        "id": "USB\\VID_32C2&PID_0066&MI_00\\7&2CD9E1E9&0&0000",
+        "class": "HIDClass"
+      },
+      {
+        "status": "OK",
+        "name": "USB Composite Device",
+        "id": "USB\\VID_32C2&PID_0066\\6&52CBD2F&0&8",
+        "class": "USB"
+      },
+      {
+        "status": "OK",
+        "name": "Generic Attribute Profile",
+        "id": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401\\9&140BE95D&0&0008",
+        "class": "Bluetooth"
+      },
+      {
+        "status": "OK",
+        "name": "Generic Attribute Profile",
+        "id": "BTHLEDEVICE\\{00001801-0000-1000-8000-00805F9B34FB}_B4E842BD8B69\\9&133F45B4&0&0001",
+        "class": "Bluetooth"
+      },
+      {
+        "status": "OK",
+        "name": "HID Keyboard Device",
+        "id": "HID\\VID_32C2&PID_0066&MI_00\\8&2F0D590&0&0000",
+        "class": "Keyboard"
+      },
+      {
+        "status": "OK",
+        "name": "HID-compliant system controller",
+        "id": "HID\\VID_32C2&PID_0066&MI_01&COL04\\8&26678E99&0&0003",
+        "class": "HIDClass"
+      },
+      {
+        "status": "OK",
+        "name": "Generic Access Profile",
+        "id": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_B4E842BD8B69\\9&133F45B4&0&0005",
+        "class": "Bluetooth"
+      },
+      {
+        "status": "OK",
+        "name": "Acer PopGo BT5.4",
+        "id": "BTHLE\\DEV_F900C6021401\\8&48A2D16&3&F900C6021401",
+        "class": "Bluetooth"
+      },
+      {
+        "status": "OK",
+        "name": "HID-compliant consumer control device",
+        "id": "HID\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401&COL02\\A&1EA1BBB9&0&0001",
+        "class": "HIDClass"
+      },
+      {
+        "status": "OK",
+        "name": "USB Input Device",
+        "id": "USB\\VID_32C2&PID_0066&MI_01\\7&2CD9E1E9&0&0001",
+        "class": "HIDClass"
+      },
+      {
+        "status": "OK",
+        "name": "LEDnetWF010033BD8B68",
+        "id": "BTHLE\\DEV_B4E842BD8B69\\8&48A2D16&3&B4E842BD8B69",
+        "class": "Bluetooth"
+      },
+      {
+        "status": "OK",
+        "name": "HID Keyboard Device",
+        "id": "HID\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401&COL03\\A&1EA1BBB9&0&0002",
+        "class": "Keyboard"
+      },
+      {
+        "status": "OK",
+        "name": "Bluetooth LE Generic Attribute Service",
+        "id": "BTHLEDEVICE\\{0000FFFF-0000-1000-8000-00805F9B34FB}_B4E842BD8B69\\9&133F45B4&0&000C",
+        "class": "Bluetooth"
+      },
+      {
+        "status": "OK",
+        "name": "HID-compliant mouse",
+        "id": "HID\\VID_32C2&PID_0066&MI_01&COL01\\8&26678E99&0&0000",
+        "class": "Mouse"
+      },
+      {
+        "status": "OK",
+        "name": "Microsoft Bluetooth LE Enumerator",
+        "id": "BTH\\MS_BTHLE\\7&2DDC919E&0&3",
+        "class": "Bluetooth"
+      },
+      {
+        "status": "OK",
+        "name": "Device Information Service",
+        "id": "BTHLEDEVICE\\{0000180A-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401\\9&140BE95D&0&000C",
+        "class": "Bluetooth"
+      },
+      {
+        "status": "OK",
+        "name": "Bluetooth LE Generic Attribute Service",
+        "id": "BTHLEDEVICE\\{0000180F-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401\\9&140BE95D&0&000F",
+        "class": "Bluetooth"
+      },
+      {
+        "status": "OK",
+        "name": "HID-compliant vendor-defined device",
+        "id": "HID\\VID_32C2&PID_0066&MI_01&COL02\\8&26678E99&0&0001",
+        "class": "HIDClass"
+      },
+      {
+        "status": "OK",
+        "name": "Generic Access Profile",
+        "id": "BTHLEDEVICE\\{00001800-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401\\9&140BE95D&0&0001",
+        "class": "Bluetooth"
+      }
+    ],
+    "win32": [],
+    "hid_bt": [
+      {
+        "status": "OK",
+        "name": "Bluetooth Low Energy GATT compliant HID device",
+        "id": "BTHLEDEVICE\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401\\9&140BE95D&0&0013"
+      }
+    ]
+  },
+  "ble_battery": {
+    "percent": 100,
+    "name": "Acer PopGo BT5.4",
+    "addr": "F900C6021401",
+    "source": "ble-gatt-2a19"
+  },
+  "dump05": {
+    "len": 512,
+    "nonzero_bytes": 122,
+    "markers": [
+      {
+        "off": 8,
+        "ctx": "0204b5050000000000000418"
+      },
+      {
+        "off": 55,
+        "ctx": "0405b50538c4000000000000"
+      }
+    ],
+    "interesting_u16": [],
+    "sig_02c632": [
+      145
+    ],
+    "sig_5accc2": [
+      152
+    ],
+    "hex_head": "0000000001010204b50500000000000004180400000100ff0b7200491c0000ff40b10c00002002530000250120000f00052c04052c0405b50538c400000000000000000000000000000000000000000001020290eb02c65accccc20100aa02000000000000000000000000000000000042810008080000010000ffff3fff3fff"
+  }
+}

@@ -15,6 +15,8 @@ hiddenimports = [
     "PIL.ImageDraw",
     "pystray",
     "pystray._base",
+    "ble_battery",
+    "mouse_device",
 ]
 
 # Bundle package data (themes, assets)
@@ -32,9 +34,23 @@ try:
 except Exception:
     pass
 
-# Platform-specific tray backends
+# Platform-specific tray backends + Windows BLE (winsdk)
 if sys.platform == "win32":
-    hiddenimports += ["pystray._win32", "winreg"]
+    hiddenimports += [
+        "pystray._win32",
+        "winreg",
+        "winsdk",
+        "winsdk.windows.devices.bluetooth",
+        "winsdk.windows.devices.bluetooth.genericattributeprofile",
+        "winsdk.windows.storage.streams",
+    ]
+    try:
+        d, b, h = collect_all("winsdk")
+        datas += d
+        binaries += b
+        hiddenimports += h
+    except Exception:
+        pass
 elif sys.platform == "darwin":
     hiddenimports += ["pystray._darwin"]
 else:
@@ -90,8 +106,8 @@ if sys.platform == "darwin":
         info_plist={
             "CFBundleName": "Acer PopGo Companion",
             "CFBundleDisplayName": "Acer PopGo Companion",
-            "CFBundleShortVersionString": "1.3.1",
-            "CFBundleVersion": "1.3.1",
+            "CFBundleShortVersionString": "1.4.0",
+            "CFBundleVersion": "1.4.0",
             "NSHighResolutionCapable": True,
             "LSHumanReadableCopyright": "MIT License",
         },

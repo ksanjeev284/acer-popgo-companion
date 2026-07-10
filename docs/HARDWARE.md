@@ -9,7 +9,8 @@ This document summarizes **product documentation**, **USB/HID reverse engineerin
 | Marketing name | Acer PopGo Wireless Mouse |
 | Example model / ASIN | `ZC.A01SI.3ZD` (Amazon), dual-mode 2.4G + BT 5.4 |
 | OEM / manufacturer (Amazon) | FORCETAKE INCORPORATED (Xizhi, New Taipei) — white-label OEM rebranded Acer |
-| RF chip / dongle USB ID | Beijing **OnMicro** — `VID_32C2` `PID_0066`, product string `"2.4G Wireless"` |
+| RF chip / dongle USB ID | Beijing **OnMicro** — `VID_32C2` `PID_0066`, product string `"2.4G Wireless"` / `"2.4G Mouse"` |
+| BLE mode USB/PnP ID | Same vendor — `VID_32C2` `PID_0026`, name **`Acer PopGo BT5.4`** |
 | Battery | Built-in **500 mAh** Li-ion, USB-C charge cable in box |
 | DPI steps (listed) | **800 / 1200 / 1600 / 2400 / 3200 / 4000 / 5000 / 6400** |
 | Official PC software | **None** (no Acer driver for this SKU; plug-and-play only) |
@@ -75,6 +76,21 @@ Not found after extensive write scans:
 So DPI is almost certainly handled **entirely inside the mouse MCU**, with the button and local LED only. The dongle just forwards normal mouse packets.
 
 **Without a leaked OEM protocol or official app**, software DPI control is not reverse-engineerable from battery status alone. Future work would need a logic analyzer / firmware dump — out of scope for a safe user-space app.
+
+## Bluetooth LE mode (deep findings)
+
+When the mouse is paired as **Acer PopGo BT5.4** (`32C2:0026`):
+
+| What | Result |
+|------|--------|
+| GATT services | Only standard 5: GAP, GATT, Device Info, **Battery**, HID |
+| Battery | **`0x2A19` = true percent** (Read + Notify) — best SOC source |
+| Charge bit | **Not present** (no `0x2A1A` / Level Status) |
+| Vendor battery HID `0xFFB5` | **Not on BLE** — dongle-only |
+| Mouse report map | Same as dongle (8 buttons, 12-bit X/Y, wheel, AC Pan) |
+| Dual-radio | Dongle stays plugged but **vendor cmds go silent** while mouse is on BT |
+
+Full GATT/HID map: [`PROTOCOL_MAP.md`](PROTOCOL_MAP.md).
 
 ## What this project *can* do (and is valuable)
 

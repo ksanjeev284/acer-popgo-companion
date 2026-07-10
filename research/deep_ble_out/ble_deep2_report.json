@@ -1,0 +1,798 @@
+{
+  "ts": 1783700422.030603,
+  "address": "F900C6021401",
+  "hid_enum": {
+    "dongle_32c2_0066": [
+      {
+        "vid": "0x32C2",
+        "pid": "0x0066",
+        "usage_page": "0x1",
+        "usage": "0x6",
+        "interface": 0,
+        "product": "2.4G Mouse",
+        "manufacturer": "(Standard system devices)",
+        "serial": "",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_00#8&2f0d590&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\\KBD",
+        "release": 17034
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0066",
+        "usage_page": "0xffb5",
+        "usage": "0x1",
+        "interface": 1,
+        "product": "2.4G Mouse",
+        "manufacturer": "(Standard system devices)",
+        "serial": "",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col02#8&26678e99&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 17034
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0066",
+        "usage_page": "0xc",
+        "usage": "0x1",
+        "interface": 1,
+        "product": "2.4G Mouse",
+        "manufacturer": "(Standard system devices)",
+        "serial": "",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col03#8&26678e99&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 17034
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0066",
+        "usage_page": "0x1",
+        "usage": "0x80",
+        "interface": 1,
+        "product": "2.4G Mouse",
+        "manufacturer": "(Standard system devices)",
+        "serial": "",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col04#8&26678e99&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 17034
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0066",
+        "usage_page": "0x1",
+        "usage": "0x2",
+        "interface": 1,
+        "product": "2.4G Mouse",
+        "manufacturer": "(Standard system devices)",
+        "serial": "",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col01#8&26678e99&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 17034
+      }
+    ],
+    "ble_32c2_0026": [
+      {
+        "vid": "0x32C2",
+        "pid": "0x0026",
+        "usage_page": "0x1",
+        "usage": "0x2",
+        "interface": -1,
+        "product": "Acer PopGo BT5.4",
+        "manufacturer": "",
+        "serial": "f900c6021401",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col01#a&1ea1bbb9&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 256
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0026",
+        "usage_page": "0xc",
+        "usage": "0x1",
+        "interface": -1,
+        "product": "Acer PopGo BT5.4",
+        "manufacturer": "",
+        "serial": "f900c6021401",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col02#a&1ea1bbb9&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 256
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0026",
+        "usage_page": "0x1",
+        "usage": "0x6",
+        "interface": -1,
+        "product": "Acer PopGo BT5.4",
+        "manufacturer": "",
+        "serial": "f900c6021401",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col03#a&1ea1bbb9&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}\\KBD",
+        "release": 256
+      }
+    ],
+    "all_32c2": [
+      {
+        "vid": "0x32C2",
+        "pid": "0x0066",
+        "usage_page": "0x1",
+        "usage": "0x6",
+        "interface": 0,
+        "product": "2.4G Mouse",
+        "manufacturer": "(Standard system devices)",
+        "serial": "",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_00#8&2f0d590&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\\KBD",
+        "release": 17034
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0066",
+        "usage_page": "0xffb5",
+        "usage": "0x1",
+        "interface": 1,
+        "product": "2.4G Mouse",
+        "manufacturer": "(Standard system devices)",
+        "serial": "",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col02#8&26678e99&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 17034
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0066",
+        "usage_page": "0xc",
+        "usage": "0x1",
+        "interface": 1,
+        "product": "2.4G Mouse",
+        "manufacturer": "(Standard system devices)",
+        "serial": "",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col03#8&26678e99&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 17034
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0066",
+        "usage_page": "0x1",
+        "usage": "0x80",
+        "interface": 1,
+        "product": "2.4G Mouse",
+        "manufacturer": "(Standard system devices)",
+        "serial": "",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col04#8&26678e99&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 17034
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0066",
+        "usage_page": "0x1",
+        "usage": "0x2",
+        "interface": 1,
+        "product": "2.4G Mouse",
+        "manufacturer": "(Standard system devices)",
+        "serial": "",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col01#8&26678e99&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 17034
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0026",
+        "usage_page": "0x1",
+        "usage": "0x2",
+        "interface": -1,
+        "product": "Acer PopGo BT5.4",
+        "manufacturer": "",
+        "serial": "f900c6021401",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col01#a&1ea1bbb9&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 256
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0026",
+        "usage_page": "0xc",
+        "usage": "0x1",
+        "interface": -1,
+        "product": "Acer PopGo BT5.4",
+        "manufacturer": "",
+        "serial": "f900c6021401",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col02#a&1ea1bbb9&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 256
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0026",
+        "usage_page": "0x1",
+        "usage": "0x6",
+        "interface": -1,
+        "product": "Acer PopGo BT5.4",
+        "manufacturer": "",
+        "serial": "f900c6021401",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col03#a&1ea1bbb9&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}\\KBD",
+        "release": 256
+      }
+    ],
+    "popgo_name": [
+      {
+        "vid": "0x32C2",
+        "pid": "0x0026",
+        "usage_page": "0x1",
+        "usage": "0x2",
+        "interface": -1,
+        "product": "Acer PopGo BT5.4",
+        "manufacturer": "",
+        "serial": "f900c6021401",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col01#a&1ea1bbb9&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 256
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0026",
+        "usage_page": "0xc",
+        "usage": "0x1",
+        "interface": -1,
+        "product": "Acer PopGo BT5.4",
+        "manufacturer": "",
+        "serial": "f900c6021401",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col02#a&1ea1bbb9&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "release": 256
+      },
+      {
+        "vid": "0x32C2",
+        "pid": "0x0026",
+        "usage_page": "0x1",
+        "usage": "0x6",
+        "interface": -1,
+        "product": "Acer PopGo BT5.4",
+        "manufacturer": "",
+        "serial": "f900c6021401",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col03#a&1ea1bbb9&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}\\KBD",
+        "release": 256
+      }
+    ]
+  },
+  "dongle_status": {
+    "error": "no response"
+  },
+  "pnp": {
+    "props": [
+      {
+        "key": "DEVPKEY_Device_DeviceDesc",
+        "data": "Bluetooth LE Device",
+        "type": "String"
+      },
+      {
+        "key": "DEVPKEY_Device_HardwareIds",
+        "data": "BTHLE\\Dev_f900c6021401",
+        "type": "StringList"
+      },
+      {
+        "key": "DEVPKEY_Device_Manufacturer",
+        "data": "Microsoft",
+        "type": "String"
+      },
+      {
+        "key": "DEVPKEY_Device_BaseContainerId",
+        "data": "{678C67E6-06E9-5D22-AB0A-D26F4002A0AB}",
+        "type": "Guid"
+      },
+      {
+        "key": "DEVPKEY_Device_BusRelations",
+        "data": "BTHLEDevice\\{00001800-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401\\9&140be95d&0&0001 BTHLEDevice\\{00001801-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401\\9&140be95d&0&0008 BTHLEDevice\\{0000180a-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401\\9&140be95d&0&000c BTHLEDevice\\{0000180f-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401\\9&140be95d&0&000f BTHLEDevice\\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401\\9&140be95d&0&0013",
+        "type": "StringList"
+      },
+      {
+        "key": "DEVPKEY_Device_ContainerId",
+        "data": "{678C67E6-06E9-5D22-AB0A-D26F4002A0AB}",
+        "type": "Guid"
+      },
+      {
+        "key": "DEVPKEY_Device_InLocalMachineContainer",
+        "data": "False",
+        "type": "Boolean"
+      },
+      {
+        "key": "DEVPKEY_Bluetooth_DeviceAddress",
+        "data": "f900c6021401",
+        "type": "String"
+      },
+      {
+        "key": "DEVPKEY_Bluetooth_DeviceFlags",
+        "data": "32739367",
+        "type": "UInt32"
+      },
+      {
+        "key": "DEVPKEY_Bluetooth_LastConnectedTime",
+        "data": "07/11/2026 03:12:39",
+        "type": "FileTime"
+      },
+      {
+        "key": "DEVPKEY_Device_BusReportedDeviceDesc",
+        "data": "Bluetooth LE Device f900c6021401",
+        "type": "String"
+      },
+      {
+        "key": "DEVPKEY_DeviceContainer_DiscoveryMethod",
+        "data": "Bluetooth Low Energy",
+        "type": "StringList"
+      },
+      {
+        "key": "DEVPKEY_DeviceContainer_Category",
+        "data": "Input.Mouse",
+        "type": "StringList"
+      },
+      {
+        "key": "DEVPKEY_DeviceContainer_UnpairUninstall",
+        "data": "True",
+        "type": "Boolean"
+      },
+      {
+        "key": "DEVPKEY_DeviceContainer_AlwaysShowDeviceAsConnected",
+        "data": "True",
+        "type": "Boolean"
+      }
+    ],
+    "hid": [
+      {
+        "status": "OK",
+        "name": "HID-compliant consumer control device",
+        "id": "HID\\VID_32C2&PID_0066&MI_01&COL03\\8&26678E99&0&0002"
+      },
+      {
+        "status": "OK",
+        "name": "Bluetooth Low Energy GATT compliant HID device",
+        "id": "BTHLEDEVICE\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401\\9&140BE95D&0&0013"
+      },
+      {
+        "status": "OK",
+        "name": "USB Input Device",
+        "id": "USB\\VID_32C2&PID_0066&MI_00\\7&2CD9E1E9&0&0000"
+      },
+      {
+        "status": "OK",
+        "name": "HID-compliant system controller",
+        "id": "HID\\VID_32C2&PID_0066&MI_01&COL04\\8&26678E99&0&0003"
+      },
+      {
+        "status": "OK",
+        "name": "HID-compliant consumer control device",
+        "id": "HID\\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&0232C2_PID&0026_REV&0100_F900C6021401&COL02\\A&1EA1BBB9&0&0001"
+      },
+      {
+        "status": "OK",
+        "name": "USB Input Device",
+        "id": "USB\\VID_32C2&PID_0066&MI_01\\7&2CD9E1E9&0&0001"
+      },
+      {
+        "status": "OK",
+        "name": "HID-compliant vendor-defined device",
+        "id": "HID\\VID_32C2&PID_0066&MI_01&COL02\\8&26678E99&0&0001"
+      }
+    ],
+    "battery_pnp": [
+      {
+        "status": "OK",
+        "name": "Acer PopGo BT5.4",
+        "id": "BTHLE\\DEV_F900C6021401\\8&48A2D16&3&F900C6021401",
+        "class": "Bluetooth"
+      }
+    ],
+    "pnp": [
+      {
+        "status": "OK",
+        "name": "Acer PopGo BT5.4",
+        "id": "BTHLE\\DEV_F900C6021401\\8&48A2D16&3&F900C6021401",
+        "class": "Bluetooth"
+      }
+    ]
+  },
+  "ble_hid_rd": {
+    "attempts": [
+      {
+        "vid": "0x32c2",
+        "pid": "0x66",
+        "product": "2.4G Mouse",
+        "usage_page": "0x1",
+        "usage": "0x6",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_00#8&2f0d590&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\\KBD",
+        "report_descriptor_len": 66,
+        "open_err": "'list' object has no attribute 'hex'"
+      },
+      {
+        "vid": "0x32c2",
+        "pid": "0x66",
+        "product": "2.4G Mouse",
+        "usage_page": "0xffb5",
+        "usage": "0x1",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col02#8&26678e99&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "report_descriptor_len": 36,
+        "open_err": "'list' object has no attribute 'hex'"
+      },
+      {
+        "vid": "0x32c2",
+        "pid": "0x66",
+        "product": "2.4G Mouse",
+        "usage_page": "0xc",
+        "usage": "0x1",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col03#8&26678e99&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "report_descriptor_len": 25,
+        "open_err": "'list' object has no attribute 'hex'"
+      },
+      {
+        "vid": "0x32c2",
+        "pid": "0x66",
+        "product": "2.4G Mouse",
+        "usage_page": "0x1",
+        "usage": "0x80",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col04#8&26678e99&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "report_descriptor_len": 29,
+        "open_err": "'list' object has no attribute 'hex'"
+      },
+      {
+        "vid": "0x32c2",
+        "pid": "0x66",
+        "product": "2.4G Mouse",
+        "usage_page": "0x1",
+        "usage": "0x2",
+        "path": "\\\\?\\HID#VID_32C2&PID_0066&MI_01&Col01#8&26678e99&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "report_descriptor_len": 75,
+        "open_err": "'list' object has no attribute 'hex'"
+      },
+      {
+        "vid": "0x32c2",
+        "pid": "0x26",
+        "product": "Acer PopGo BT5.4",
+        "usage_page": "0x1",
+        "usage": "0x2",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col01#a&1ea1bbb9&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "report_descriptor_len": 75,
+        "open_err": "'list' object has no attribute 'hex'"
+      },
+      {
+        "vid": "0x32c2",
+        "pid": "0x26",
+        "product": "Acer PopGo BT5.4",
+        "usage_page": "0xc",
+        "usage": "0x1",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col02#a&1ea1bbb9&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}",
+        "report_descriptor_len": 25,
+        "open_err": "'list' object has no attribute 'hex'"
+      },
+      {
+        "vid": "0x32c2",
+        "pid": "0x26",
+        "product": "Acer PopGo BT5.4",
+        "usage_page": "0x1",
+        "usage": "0x6",
+        "path": "\\\\?\\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401&Col03#a&1ea1bbb9&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}\\KBD",
+        "report_descriptor_len": 67,
+        "open_err": "'list' object has no attribute 'hex'"
+      }
+    ]
+  },
+  "name": "Acer PopGo BT5.4",
+  "connection_status": 1,
+  "device_id": "BluetoothLE#BluetoothLE7c:50:79:ed:2d:2a-f9:00:c6:02:14:01",
+  "bluetooth_address": "F900C6021401",
+  "was_secure_connection_err": "'_winsdk_Windows_Devices_Bluetooth.BluetoothLEDevice' object has no attribute 'was_secure_connection_used_for_bonding'",
+  "device_info": {
+    "id": "BluetoothLE#BluetoothLE7c:50:79:ed:2d:2a-f9:00:c6:02:14:01",
+    "name": "Acer PopGo BT5.4",
+    "is_enabled": false,
+    "kind": 5
+  },
+  "pairing": {
+    "is_paired": true,
+    "can_pair": false,
+    "protection": 2
+  },
+  "gatt_status": 0,
+  "services": [
+    {
+      "uuid": "00001800-0000-1000-8000-00805f9b34fb",
+      "short": "1800",
+      "session": {
+        "can_maintain": true,
+        "maintain": false,
+        "status": 1,
+        "maintain_set": true
+      },
+      "characteristics": [
+        {
+          "uuid": "00002a00-0000-1000-8000-00805f9b34fb",
+          "short": "2a00",
+          "props": 2,
+          "handle": 2,
+          "protection": 0,
+          "value_hex": "4163657220506f70476f204254352e3400000000000000000000000000",
+          "value_list": [
+            65,
+            99,
+            101,
+            114,
+            32,
+            80,
+            111,
+            112,
+            71,
+            111,
+            32,
+            66,
+            84,
+            53,
+            46,
+            52,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "descriptors": []
+        },
+        {
+          "uuid": "00002a01-0000-1000-8000-00805f9b34fb",
+          "short": "2a01",
+          "props": 2,
+          "handle": 4,
+          "protection": 0,
+          "value_hex": "c203",
+          "value_list": [
+            194,
+            3
+          ],
+          "descriptors": []
+        },
+        {
+          "uuid": "00002a04-0000-1000-8000-00805f9b34fb",
+          "short": "2a04",
+          "props": 2,
+          "handle": 6,
+          "protection": 0,
+          "value_hex": "060006002c00d800",
+          "value_list": [
+            6,
+            0,
+            6,
+            0,
+            44,
+            0,
+            216,
+            0
+          ],
+          "descriptors": []
+        }
+      ],
+      "request_access": 1,
+      "open_shared": 1,
+      "device_id": "\\\\?\\BTHLEDevice#{00001800-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401#9&140be95d&0&0001#{6e3bb679-4372-40c8-9eaa-4509df260cd8}",
+      "attribute_handle": 1,
+      "chars_status": 0
+    },
+    {
+      "uuid": "00001801-0000-1000-8000-00805f9b34fb",
+      "short": "1801",
+      "session": {
+        "can_maintain": true,
+        "maintain": false,
+        "status": 1,
+        "maintain_set": true
+      },
+      "characteristics": [
+        {
+          "uuid": "00002a05-0000-1000-8000-00805f9b34fb",
+          "short": "2a05",
+          "props": 32,
+          "handle": 9,
+          "protection": 0,
+          "descriptors": [
+            {
+              "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+              "short": "2902",
+              "value_hex": "0200",
+              "value_list": [
+                2,
+                0
+              ]
+            }
+          ]
+        }
+      ],
+      "request_access": 1,
+      "open_shared": 1,
+      "device_id": "\\\\?\\BTHLEDevice#{00001801-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401#9&140be95d&0&0008#{6e3bb679-4372-40c8-9eaa-4509df260cd8}",
+      "attribute_handle": 8,
+      "chars_status": 0
+    },
+    {
+      "uuid": "0000180a-0000-1000-8000-00805f9b34fb",
+      "short": "180a",
+      "session": {
+        "can_maintain": true,
+        "maintain": false,
+        "status": 1,
+        "maintain_set": true
+      },
+      "characteristics": [
+        {
+          "uuid": "00002a50-0000-1000-8000-00805f9b34fb",
+          "short": "2a50",
+          "props": 2,
+          "handle": 13,
+          "protection": 0,
+          "value_hex": "02c23226000001",
+          "value_list": [
+            2,
+            194,
+            50,
+            38,
+            0,
+            0,
+            1
+          ],
+          "descriptors": []
+        }
+      ],
+      "request_access": 1,
+      "open_shared": 1,
+      "device_id": "\\\\?\\BTHLEDevice#{0000180a-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401#9&140be95d&0&000c#{6e3bb679-4372-40c8-9eaa-4509df260cd8}",
+      "attribute_handle": 12,
+      "chars_status": 0
+    },
+    {
+      "uuid": "0000180f-0000-1000-8000-00805f9b34fb",
+      "short": "180f",
+      "session": {
+        "can_maintain": true,
+        "maintain": false,
+        "status": 1,
+        "maintain_set": true
+      },
+      "characteristics": [
+        {
+          "uuid": "00002a19-0000-1000-8000-00805f9b34fb",
+          "short": "2a19",
+          "props": 18,
+          "handle": 16,
+          "protection": 0,
+          "value_hex": "64",
+          "value_list": [
+            100
+          ],
+          "battery": 100,
+          "descriptors": [
+            {
+              "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+              "short": "2902",
+              "value_hex": "0100",
+              "value_list": [
+                1,
+                0
+              ]
+            }
+          ]
+        }
+      ],
+      "request_access": 1,
+      "open_shared": 1,
+      "device_id": "\\\\?\\BTHLEDevice#{0000180f-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401#9&140be95d&0&000f#{6e3bb679-4372-40c8-9eaa-4509df260cd8}",
+      "attribute_handle": 15,
+      "chars_status": 0
+    },
+    {
+      "uuid": "00001812-0000-1000-8000-00805f9b34fb",
+      "short": "1812",
+      "session": {
+        "can_maintain": true,
+        "maintain": false,
+        "status": 1,
+        "maintain_set": true
+      },
+      "characteristics": [],
+      "request_access": 3,
+      "open_shared": 5,
+      "device_id": "\\\\?\\BTHLEDevice#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&0232c2_PID&0026_REV&0100_f900c6021401#9&140be95d&0&0013#{6e3bb679-4372-40c8-9eaa-4509df260cd8}",
+      "attribute_handle": 19,
+      "chars_status": 3,
+      "chars_status_cached": 3
+    }
+  ],
+  "battery_cccd_write": 0,
+  "battery_notify_events": [
+    {
+      "t": 1783700426.913111,
+      "v": [
+        100
+      ]
+    }
+  ],
+  "advertisements": [
+    {
+      "address": "98063C28250B",
+      "rssi": -75,
+      "local_name": "",
+      "service_uuids": [],
+      "manufacturer": [
+        {
+          "company_id": 117,
+          "data_hex": "42040120e7200d0002012b01010001000000000000000000"
+        }
+      ],
+      "flags": 26,
+      "is_connectable": true
+    },
+    {
+      "address": "CBA3D02AD8E1",
+      "rssi": -63,
+      "local_name": "",
+      "service_uuids": [],
+      "manufacturer": [
+        {
+          "company_id": 76,
+          "data_hex": "12020001"
+        }
+      ],
+      "flags": null,
+      "is_connectable": false
+    },
+    {
+      "address": "614B3FC23E84",
+      "rssi": -64,
+      "local_name": "",
+      "service_uuids": [],
+      "manufacturer": [
+        {
+          "company_id": 76,
+          "data_hex": "10063c1e025599f3"
+        }
+      ],
+      "flags": 26,
+      "is_connectable": true
+    },
+    {
+      "address": "523FDB452194",
+      "rssi": -79,
+      "local_name": "",
+      "service_uuids": [],
+      "manufacturer": [
+        {
+          "company_id": 76,
+          "data_hex": "0c0e00f45d6bc8b02eb854585a437d291006041d2682ec48"
+        }
+      ],
+      "flags": 26,
+      "is_connectable": true
+    },
+    {
+      "address": "54E803579D5C",
+      "rssi": -78,
+      "local_name": "",
+      "service_uuids": [],
+      "manufacturer": [
+        {
+          "company_id": 76,
+          "data_hex": "0c0e00f45d6bc8b02eb854585a437d291006041d2682ec48"
+        }
+      ],
+      "flags": 26,
+      "is_connectable": true
+    },
+    {
+      "address": "F7CE77E6EEAB",
+      "rssi": -78,
+      "local_name": "",
+      "service_uuids": [],
+      "manufacturer": [
+        {
+          "company_id": 76,
+          "data_hex": "12020003"
+        }
+      ],
+      "flags": null,
+      "is_connectable": false
+    }
+  ],
+  "dual_radio_summary": {
+    "ble_battery_percent": 100,
+    "dongle_fw_percent": null,
+    "dongle_mv": null,
+    "dongle_flags": null,
+    "both_radios_present": true
+  }
+}
