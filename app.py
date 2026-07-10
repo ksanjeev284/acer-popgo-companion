@@ -44,7 +44,7 @@ except ImportError:
 
 
 APP_NAME = "Acer PopGo Companion"
-APP_VERSION = "1.3.5"
+APP_VERSION = "1.3.6"
 
 # Outer window is fixed; content scrolls so every control is reachable
 WINDOW_W = 500
@@ -307,13 +307,14 @@ class PopGoApp(ctk.CTk):
             anchor="w",
         )
         self.charge_badge.pack(anchor="w")
-        ctk.CTkLabel(
+        self.bat_meta = ctk.CTkLabel(
             right,
             text=f"{BATTERY_CAPACITY_MAH} mAh pack",
             font=ctk.CTkFont(size=10),
             text_color=MUTED,
             anchor="w",
-        ).pack(anchor="w")
+        )
+        self.bat_meta.pack(anchor="w")
 
         self.bat_bar = ctk.CTkProgressBar(
             bat, height=12, progress_color=ACER_GREEN, fg_color="#333333"
@@ -597,6 +598,20 @@ class PopGoApp(ctk.CTk):
             self.bat_bar.configure(
                 progress_color=BLUE if status.is_charging else battery_color(pct)
             )
+            # Meta: voltage + firmware raw (MCU often freezes at e.g. 56%)
+            meta_bits = [f"{BATTERY_CAPACITY_MAH} mAh pack"]
+            if status.voltage_mv is not None:
+                meta_bits.append(f"{status.voltage_mv / 1000:.2f} V")
+            if (
+                status.firmware_percent is not None
+                and status.percent_source == "voltage"
+                and status.firmware_percent != pct
+            ):
+                meta_bits.append(f"MCU raw {status.firmware_percent}%")
+            if status.percent_source == "voltage":
+                meta_bits.append("est. from voltage")
+            self.bat_meta.configure(text=" · ".join(meta_bits))
+
             tips = {
                 "critical": f"Critical ≤{LOW_BATTERY_PERCENT}% — plug in USB-C.",
                 "low": "Battery low — plan to recharge.",
@@ -610,11 +625,16 @@ class PopGoApp(ctk.CTk):
                 tip = "Charging — leave USB-C plugged in."
             elif status.is_full:
                 tip = "Full — safe to unplug."
-            self.bat_status.configure(text=tip)
+            if status.percent_source == "voltage" and status.firmware_percent == 56:
+                tip = (
+                    (tip + " ") if tip else ""
+                ) + "Note: mouse firmware often freezes at 56%; we estimate % from voltage."
+            self.bat_status.configure(text=tip.strip())
             self._maybe_notify_low_battery(status)
         else:
             self.bat_value.configure(text="—", text_color=MUTED)
             self.bat_bar.set(0)
+            self.bat_meta.configure(text=f"{BATTERY_CAPACITY_MAH} mAh pack")
             self.bat_status.configure(text=status.last_error or "No battery data yet")
 
         idx = status.dpi_index

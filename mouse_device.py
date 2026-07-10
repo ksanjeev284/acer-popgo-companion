@@ -46,11 +46,67 @@ PowerMode = Literal["auto", "charging", "battery", "full"]
 PowerSource = Literal["charging", "battery", "full", "unknown"]
 
 
+def lipo_mv_to_percent(mv: int) -> int:
+    """Rough single-cell LiPo SOC from millivolts (display estimate)."""
+    # Typical 1S: ~3.30 V empty, ~4.20 V full (linear approx — good enough for UI)
+    empty, full = 3300, 4200
+    if mv <= empty:
+        return 0
+    if mv >= full:
+        return 100
+    return int(round((mv - empty) * 100 / (full - empty)))
+
+
+def parse_status_packet(pkt: list[int]) -> tuple[int, Optional[int], Optional[int], str]:
+    """
+    Parse CMD 0x01 response.
+
+    Observed layout (clean reads):
+      [0xB5, 0x01, flags, fw_pct, a, b, c, d]
+
+    Firmware often freezes fw_pct (e.g. stuck at 56). Trailing bytes sometimes
+    encode a LiPo voltage in mV (plausible 3000–4300), e.g.:
+      [..., 27, 2, 14, 40] → LE at [5:7] = 0x0E02 = 3586 mV
+
+    Returns (display_pct, firmware_pct, voltage_mv, source_label)
+    """
+    if len(pkt) < 4:
+        return 0, None, None, "invalid"
+
+    fw_pct = int(pkt[3]) & 0x7F
+    if fw_pct > 100:
+        fw_pct = 100
+
+    voltage_mv: Optional[int] = None
+    if len(pkt) >= 8:
+        candidates = [
+            pkt[5] | (pkt[6] << 8),  # LE mid — often hit on real samples
+            (pkt[6] << 8) | pkt[7],  # BE high
+            pkt[6] | (pkt[7] << 8),  # LE high
+            pkt[4] | (pkt[5] << 8),  # LE low
+        ]
+        for c in candidates:
+            if 3000 <= c <= 4300:
+                voltage_mv = c
+                break
+
+    if voltage_mv is not None:
+        est = lipo_mv_to_percent(voltage_mv)
+        # Prefer voltage estimate when firmware % looks frozen/wrong vs voltage
+        # Always prefer voltage for display when we have a solid reading —
+        # OEM fw_pct on this model has been observed stuck for long periods.
+        return est, fw_pct, voltage_mv, "voltage"
+    return fw_pct, fw_pct, None, "firmware"
+
+
 @dataclass
 class MouseStatus:
     connected: bool = False
     product_name: str = "Acer PopGo"
-    battery_percent: Optional[int] = None
+    battery_percent: Optional[int] = None  # value shown in UI
+    firmware_percent: Optional[int] = None  # raw byte from MCU (may stick)
+    voltage_mv: Optional[int] = None
+    percent_source: str = "unknown"  # voltage | firmware
     is_charging: Optional[bool] = None
     is_full: bool = False
     power_source: PowerSource = "unknown"
@@ -71,6 +127,8 @@ class MouseStatus:
     def battery_label(self) -> str:
         if self.battery_percent is None:
             return "—"
+        if self.voltage_mv is not None:
+            return f"{self.battery_percent}% · {self.voltage_mv / 1000:.2f} V"
         return f"{self.battery_percent}%"
 
     @property
@@ -325,16 +383,15 @@ class PopGoMouse:
             if not pkt or len(pkt) < 4:
                 return None
 
-            # ONLY trust first 4 bytes (rest is often garbage)
             self.status.status_flags = int(pkt[2])
-            pct = int(pkt[3]) & 0x7F
-            if pct > 100:
-                pct = 100
-
-            self.status.battery_percent = pct
-            self._apply_power_state(pct, from_user=False)
+            display_pct, fw_pct, voltage_mv, source = parse_status_packet(pkt)
+            self.status.firmware_percent = fw_pct
+            self.status.voltage_mv = voltage_mv
+            self.status.percent_source = source
+            self.status.battery_percent = display_pct
+            self._apply_power_state(display_pct, from_user=False)
             self.status.last_update = time.time()
-            return pct
+            return display_pct
 
     def read_info(self) -> Optional[list[int]]:
         with self._lock:

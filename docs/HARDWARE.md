@@ -62,7 +62,10 @@ HID reverse engineering found:
 
 Useful vendor command:
 
-- **`B5 01 …` → battery percent** in byte `[3]`
+- **`B5 01 …` → status packet**  
+  - Byte `[3]`: firmware “percent” — **often freezes** (observed stuck at **56%** for long periods)  
+  - Bytes mid-packet: sometimes a **LiPo voltage in mV** (e.g. `0x0E02` ≈ 3.59 V)  
+  - This app **prefers voltage → estimated %** when mV is in the 3.0–4.3 V range, and still shows the raw MCU % for comparison  
 
 Not found after extensive write scans:
 
