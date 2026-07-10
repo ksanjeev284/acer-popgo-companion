@@ -9,10 +9,14 @@ CMD 0x01 (clean, isolated):
   - byte[3] is battery percent 0–100
   - bytes[4..7] are often stale buffer garbage after other commands
 
-Charging is NOT reported as a dedicated HID flag on the 2.4G link.
-Auto mode therefore always assumes ON BATTERY while the dongle is in use.
-The user can manually mark Charging / Full via the UI when the USB-C cable
-is plugged in — that is the only reliable signal we have.
+Charging is NOT reported as a dedicated HID flag on the 2.4G link
+(verified: status packet is identical with USB-C plugged or unplugged).
+
+Power state:
+  - Default: On battery
+  - User toggle / buttons: Charging or Full
+  - Helpers: if user marked Charging and % falls → back to On battery
+            if % rises twice in a row → auto mark Charging (optional assist)
 """
 from __future__ import annotations
 
@@ -104,8 +108,11 @@ class PopGoMouse:
         self._path: Optional[bytes] = None
         self.status = MouseStatus()
         self._tracked_dpi_index: Optional[int] = None
-        # auto | charging | battery | full — auto ALWAYS means on-battery
-        self._override: PowerMode = "auto"
+        # auto/battery = on battery; charging/full = user (or assist) selected
+        self._override: PowerMode = "battery"
+        self._last_percent: Optional[int] = None
+        self._rise_streak: int = 0
+        self._assist_enabled: bool = True  # auto flip to charging on clear rise
 
     # ------------------------------------------------------------------ open
     def find_device_info(self) -> list[dict]:
@@ -203,33 +210,78 @@ class PopGoMouse:
     def set_power_override(self, mode: PowerMode) -> MouseStatus:
         """UI mode. Always updates status immediately (no HID required)."""
         with self._lock:
+            if mode == "auto":
+                mode = "battery"
             self._override = mode
+            # Reset rise streak so assist doesn't fight the user
+            if mode == "battery":
+                self._rise_streak = 0
             pct = self.status.battery_percent
-            self._apply_power_state(pct)
+            self._apply_power_state(pct, from_user=True)
             self.status.last_update = time.time()
             return self.status
 
     def get_power_override(self) -> PowerMode:
         return self._override
 
-    def _apply_power_state(self, pct: Optional[int]) -> None:
-        """
-        Resolve power_source.
+    def set_charging_cable(self, plugged_in: bool) -> MouseStatus:
+        """Big UI switch: True = charging cable connected."""
+        return self.set_power_override("charging" if plugged_in else "battery")
 
-        Auto = always On battery (firmware has no charge bit over 2.4G).
-        Charging / Full only when the user explicitly selects them.
-        """
+    def _note_percent_trend(self, pct: int) -> None:
+        """Assist: rise → suggest/set charging; fall while charging → on battery."""
+        if self._last_percent is None:
+            self._last_percent = pct
+            self._rise_streak = 0
+            return
+
+        delta = pct - self._last_percent
+        self._last_percent = pct
+
+        if delta <= -1:
+            self._rise_streak = 0
+            # Unplugged while marked charging: battery starts falling
+            if self._override == "charging":
+                self._override = "battery"
+            return
+
+        if delta >= 1:
+            self._rise_streak += 1
+            # Two consecutive rises = almost certainly on a charger
+            if self._assist_enabled and self._rise_streak >= 2:
+                if self._override in ("auto", "battery"):
+                    self._override = "charging"
+            return
+
+        # flat — do nothing (keep current mode)
+
+    def _apply_power_state(
+        self, pct: Optional[int], from_user: bool = False
+    ) -> None:
+        """Apply labels from current override (+ optional trend assist)."""
+        p = 0 if pct is None else int(pct)
+
+        if not from_user and pct is not None:
+            self._note_percent_trend(p)
+
+        if self._override == "auto":
+            self._override = "battery"
+
         self.status.override_mode = self._override
-        p = 0 if pct is None else pct
 
         if self._override == "charging":
             self.status.is_charging = True
             self.status.is_full = p >= 100
             self.status.power_source = "charging"
             self.status.charge_label = "Charging"
-            self.status.charge_detail = (
-                "You marked Charging — click On battery when you unplug USB-C"
-            )
+            if from_user:
+                self.status.charge_detail = (
+                    "Cable marked connected — turn the switch OFF when you unplug"
+                )
+            else:
+                self.status.charge_detail = (
+                    "Charging (battery % rose, or you marked the cable connected)"
+                )
             return
 
         if self._override == "full":
@@ -237,22 +289,22 @@ class PopGoMouse:
             self.status.is_full = True
             self.status.power_source = "full"
             self.status.charge_label = "Fully charged"
-            self.status.charge_detail = "You marked Full"
+            self.status.charge_detail = "Marked full / 100%"
             return
 
-        # "battery" and "auto" → on battery (never invent Charging)
+        # battery (default)
         self.status.is_charging = False
         self.status.is_full = p >= 100
         if p >= 100:
             self.status.power_source = "full"
             self.status.charge_label = "Fully charged"
-            self.status.charge_detail = "battery at 100%"
+            self.status.charge_detail = "battery reports 100%"
         else:
             self.status.power_source = "battery"
             self.status.charge_label = "On battery · in use"
             self.status.charge_detail = (
-                "USB-C unplugged / wireless use. "
-                "Click Charging only while the cable is plugged in."
+                "This PC cannot see the USB-C plug on PopGo. "
+                "Turn ON “Charging cable connected” when you plug in."
             )
 
     # ----------------------------------------------------------------- reads
@@ -280,7 +332,7 @@ class PopGoMouse:
                 pct = 100
 
             self.status.battery_percent = pct
-            self._apply_power_state(pct)
+            self._apply_power_state(pct, from_user=False)
             self.status.last_update = time.time()
             return pct
 
