@@ -44,7 +44,7 @@ except ImportError:
 
 
 APP_NAME = "Acer PopGo Companion"
-APP_VERSION = "1.3.4"
+APP_VERSION = "1.3.5"
 
 # Outer window is fixed; content scrolls so every control is reachable
 WINDOW_W = 500
@@ -369,9 +369,10 @@ class PopGoApp(ctk.CTk):
         ctk.CTkLabel(
             bat,
             text=(
-                "Important: PopGo does not tell the PC when USB-C is plugged in "
-                "(status is the same either way). Flip this switch when you plug/unplug, "
-                "or wait until battery % goes up (then it can auto-mark charging)."
+                "Green LED on the mouse = charging (hardware only). "
+                "That LED is NOT sent to the PC — flip this switch when you plug USB-C, "
+                "or wait until battery % rises (auto-assist). "
+                "DPI is only changed with the button on the mouse (no software DPI on this model)."
             ),
             font=ctk.CTkFont(size=10),
             text_color=MUTED,
@@ -477,7 +478,7 @@ class PopGoApp(ctk.CTk):
                 anchor="w",
             ).pack(anchor="w", padx=10, pady=(4, 8))
 
-        # Device
+        # Device + hardware limits
         det = self._card(body, pady=(4, 10))
         self._h(det, "DEVICE")
         self.detail_label = ctk.CTkLabel(
@@ -490,6 +491,21 @@ class PopGoApp(ctk.CTk):
             wraplength=WINDOW_W - 50,
         )
         self.detail_label.pack(anchor="w", padx=10, pady=(2, 2))
+        ctk.CTkLabel(
+            det,
+            text=(
+                "LED guide (on the mouse, not in software):\n"
+                "  • Green when USB-C plugged = charging (local LED)\n"
+                "  • DPI button = cycle 800→6400 (local only)\n"
+                "This app adds: battery %, tray, OS speed, DPI mark-list.\n"
+                "Full write-up: docs/HARDWARE.md on GitHub."
+            ),
+            font=ctk.CTkFont(size=10),
+            text_color=MUTED,
+            justify="left",
+            anchor="w",
+            wraplength=WINDOW_W - 50,
+        ).pack(anchor="w", padx=10, pady=(0, 4))
         self.error_label = ctk.CTkLabel(
             det,
             text="",

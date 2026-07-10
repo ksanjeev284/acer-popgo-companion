@@ -53,16 +53,31 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 
 ---
 
+## What this app can and cannot do
+
+**Read this first** — PopGo is a plug-and-play OEM mouse (**no official Acer software**). Full details: [`docs/HARDWARE.md`](docs/HARDWARE.md).
+
+| | |
+|--|--|
+| **Battery % on PC** | Yes — via reverse-engineered HID (Acer doesn’t ship an app for this) |
+| **Green charge LED** | On the **mouse only** — the LED is local hardware; the PC never receives that signal over the 2.4G dongle |
+| **Software “is charging?”** | Not automatic — use the **Charging cable** switch (or wait for % to rise) |
+| **Software DPI change** | Not available — DPI is only the **physical DPI button** on the mouse |
+| **DPI list / tracking** | Yes — mark which step you set with the button |
+| **Windows pointer speed** | Yes — OS setting (not the optical sensor DPI) |
+
+The green LED when you plug USB-C is normal. It is driven by the charge circuit **inside the mouse**, not by Windows. No community or official app can “see” that LED on this model.
+
 ## Features
 
 | Feature | Details |
 |--------|---------|
 | **Live battery %** | Read from the mouse MCU over HID |
-| **Charging status** | Shows *Charging*, *On battery · in use*, or *Fully charged* |
-| **Fixed window** | Non-resizable UI sized so all controls fit |
+| **Charging cable switch** | You mark cable connected (PC cannot see the green LED) |
+| **Fixed window** | Scrollable body so all controls fit |
 | **DPI tracker** | 800 → 6400 (8 steps); mark the active level after the hardware DPI button |
 | **Windows pointer speed** | OS slider 1–20 (Windows builds) |
-| **System tray** | Close to tray; battery tooltip (bolt icon while charging) |
+| **System tray** | Close to tray; battery tooltip |
 | **Low-battery toast** | Notification when battery hits **≤10%** while not charging |
 
 ---
