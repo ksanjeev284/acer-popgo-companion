@@ -3,18 +3,21 @@ HID communication layer for Acer PopGo wireless mouse.
 
 VID:PID 32C2:0066 · vendor page 0xFFB5 · report ID 0xB5
 
-CMD 0x01 status (observed):
-  [0xB5, 0x01, state, percent, ...]
-  state  often 0x01 while on battery over 2.4G
-  percent 0–100
+CMD 0x01 (clean, isolated):
+  [0xB5, 0x01, 0x01, percent, 0, 0, 0, 0]
+  - byte[2] is always 0x01 on this firmware (NOT a charge flag)
+  - byte[3] is battery percent 0–100
+  - bytes[4..7] are often stale buffer garbage after other commands
 
-Charging is inferred from:
-  1) status state byte (enum)
-  2) sticky battery trend (any 1% rise/fall between polls)
-  3) optional user override from the UI
+Charging is NOT reported as a dedicated HID flag on the 2.4G link.
+We detect it by:
+  1) Battery % rising between polls (sticky)
+  2) Optional USB cable presence (extra 32C2 device / power path)
+  3) Manual override from the UI (always wins)
 """
 from __future__ import annotations
 
+import re
 import threading
 import time
 from collections import deque
@@ -51,7 +54,7 @@ class MouseStatus:
     is_full: bool = False
     power_source: PowerSource = "unknown"
     charge_label: str = "—"
-    charge_detail: str = ""  # how we decided (trend / status / override)
+    charge_detail: str = ""
     dpi_index: Optional[int] = None
     dpi: Optional[int] = None
     firmware: Optional[str] = None
@@ -62,6 +65,7 @@ class MouseStatus:
     last_error: Optional[str] = None
     last_update: float = field(default_factory=time.time)
     override_mode: PowerMode = "auto"
+    usb_cable_hint: bool = False
 
     @property
     def battery_label(self) -> str:
@@ -95,6 +99,34 @@ class MouseStatus:
         return "high"
 
 
+def detect_usb_charge_cable() -> bool:
+    """
+    Heuristic: if more than one unique USB 32C2 product instance is present,
+    the mouse body may be USB-tethered (charging from the PC) in addition
+    to the 2.4G dongle. Wall-charger-only will not show up here.
+    """
+    products: set[str] = set()
+    try:
+        for d in hid.enumerate(VENDOR_ID):
+            path = d.get("path") or b""
+            if isinstance(path, bytes):
+                path = path.decode("utf-8", "replace")
+            # Normalize to VID/PID (+ optional MI) root
+            m = re.search(
+                r"(VID_32C2&PID_[0-9A-Fa-f]{4})(?:&MI_\d+)?",
+                path,
+                re.IGNORECASE,
+            )
+            if m:
+                products.add(m.group(1).upper())
+            else:
+                products.add(f"PID_{d.get('product_id', 0):04X}")
+    except Exception:
+        return False
+    # Single dongle → one product id. Extra product id → likely wired mouse too.
+    return len(products) > 1
+
+
 class PopGoMouse:
     """Thread-safe reader for the Acer PopGo vendor HID interface."""
 
@@ -104,11 +136,12 @@ class PopGoMouse:
         self._path: Optional[bytes] = None
         self.status = MouseStatus()
         self._tracked_dpi_index: Optional[int] = None
-        self._battery_history: Deque[Tuple[float, int]] = deque(maxlen=60)
+        self._battery_history: Deque[Tuple[float, int]] = deque(maxlen=120)
         self._last_percent: Optional[int] = None
-        # Sticky inferred mode from trend (survives flat periods)
+        # None = unknown, True = charging, False = on battery (sticky)
         self._sticky_charging: Optional[bool] = None
         self._override: PowerMode = "auto"
+        self._flat_polls: int = 0
 
     # ------------------------------------------------------------------ open
     def find_device_info(self) -> list[dict]:
@@ -183,13 +216,14 @@ class PopGoMouse:
 
     def _query(self, payload: list[int], listen: float = 0.12) -> list[list[int]]:
         assert self._dev is not None
-        self._drain(0.04)
+        # Longer drain avoids stale multipacket dumps polluting status
+        self._drain(0.06)
         packet = bytes([REPORT_ID] + (payload + [0] * 7)[:7])
         try:
             self._dev.write(packet)
         except Exception as exc:
             raise RuntimeError(f"HID write failed: {exc}") from exc
-        time.sleep(0.015)
+        time.sleep(0.02)
         return self._drain(listen)
 
     def _first_matching(self, pkts: list[list[int]], cmd: int) -> Optional[list[int]]:
@@ -202,85 +236,94 @@ class PopGoMouse:
         return None
 
     # ------------------------------------------------------- charge helpers
-    def set_power_override(self, mode: PowerMode) -> None:
-        """UI override: auto | charging | battery | full."""
+    def set_power_override(self, mode: PowerMode) -> MouseStatus:
+        """UI override. Always updates status immediately (no HID required)."""
         with self._lock:
             self._override = mode
             self.status.override_mode = mode
-            if mode != "auto" and self.status.battery_percent is not None:
-                self._apply_power_result(
-                    self.status.battery_percent,
-                    state_hint=None,
-                    source="manual override",
-                )
+            pct = self.status.battery_percent
+            self._apply_power_state(pct if pct is not None else 0, usb_cable=False)
+            # If we have no percent yet, still set labels for override
+            if pct is None and mode != "auto":
+                self._force_override_labels(mode)
+            self.status.last_update = time.time()
+            return self.status
 
     def get_power_override(self) -> PowerMode:
         return self._override
 
-    def _state_byte_hint(self, state: int, cmd04_byte3: Optional[int]) -> Optional[str]:
-        """
-        Map firmware state bytes to a power hint.
-
-        Observed on battery: CMD01 byte2 == 1.
-        Many OEM firmwares use:
-          0 = charging, 1 = discharging, 2 = charging, 3 = full
-        CMD04 byte3 has been 0 while discharging — treat 1 as charging if seen.
-        """
-        if state in (2, 0x12, 0x22):
-            return "charging"
-        if state in (3, 0x13, 0x23):
-            return "full"
-        if state == 0:
-            # ambiguous: some firmwares use 0 for charging, others unknown
-            # Prefer CMD04 if available
-            if cmd04_byte3 == 1:
-                return "charging"
-            return None
-        if state == 1:
-            if cmd04_byte3 == 1:
-                return "charging"
-            return "battery"
-        # High bit often means charging
-        if state & 0x80:
-            return "charging"
-        if state & 0x02:
-            return "charging"
-        if state & 0x04:
-            return "full"
-        return None
+    def _force_override_labels(self, mode: PowerMode) -> None:
+        if mode == "charging":
+            self.status.is_charging = True
+            self.status.is_full = False
+            self.status.power_source = "charging"
+            self.status.charge_label = "Charging"
+            self.status.charge_detail = "manual override"
+        elif mode == "battery":
+            self.status.is_charging = False
+            self.status.is_full = False
+            self.status.power_source = "battery"
+            self.status.charge_label = "On battery · in use"
+            self.status.charge_detail = "manual override"
+        elif mode == "full":
+            self.status.is_charging = False
+            self.status.is_full = True
+            self.status.power_source = "full"
+            self.status.charge_label = "Fully charged"
+            self.status.charge_detail = "manual override"
 
     def _update_sticky_from_percent(self, pct: int) -> Optional[bool]:
-        """Any 1% rise → charging sticky; any 1% fall → battery sticky."""
+        """
+        Sticky charge inference from percent changes.
+        Rise by >=1%  → charging
+        Fall by >=1%  → on battery
+        Flat          → keep previous sticky (or unknown)
+        """
         if self._last_percent is None:
             self._last_percent = pct
+            self._flat_polls = 0
             return self._sticky_charging
+
         delta = pct - self._last_percent
         self._last_percent = pct
+
         if delta >= 1:
             self._sticky_charging = True
+            self._flat_polls = 0
         elif delta <= -1:
             self._sticky_charging = False
+            self._flat_polls = 0
+        else:
+            self._flat_polls += 1
+            # After many flat polls while previously charging, stay charging
+            # (percent often freezes mid-charge). After long flat from unknown,
+            # assume battery (wireless use).
+            if self._sticky_charging is None and self._flat_polls >= 3:
+                self._sticky_charging = False
+
         return self._sticky_charging
 
-    def _apply_power_result(
-        self, pct: int, state_hint: Optional[str], source: str
-    ) -> None:
-        override = self._override
-        if override == "charging":
+    def _apply_power_state(self, pct: int, usb_cable: bool) -> None:
+        """Resolve final power_source from override / USB / sticky trend."""
+        self.status.override_mode = self._override
+        self.status.usb_cable_hint = usb_cable
+
+        # ---- Manual override always wins ----
+        if self._override == "charging":
             self.status.is_charging = True
             self.status.is_full = pct >= 100
             self.status.power_source = "charging"
-            self.status.charge_label = "Charging"
-            self.status.charge_detail = source if source.startswith("manual") else "manual override"
+            self.status.charge_label = "Charging · full" if pct >= 100 else "Charging"
+            self.status.charge_detail = "manual override"
             return
-        if override == "battery":
+        if self._override == "battery":
             self.status.is_charging = False
             self.status.is_full = False
             self.status.power_source = "battery"
             self.status.charge_label = "On battery · in use"
             self.status.charge_detail = "manual override"
             return
-        if override == "full":
+        if self._override == "full":
             self.status.is_charging = False
             self.status.is_full = True
             self.status.power_source = "full"
@@ -288,57 +331,58 @@ class PopGoMouse:
             self.status.charge_detail = "manual override"
             return
 
-        # Auto mode
+        # ---- Auto ----
         sticky = self._update_sticky_from_percent(pct)
 
-        if pct >= 100 or state_hint == "full":
-            # Full but may still be on charger
-            if sticky is True or state_hint == "charging":
+        if pct >= 100:
+            if sticky is True or usb_cable:
                 self.status.is_charging = True
                 self.status.is_full = True
                 self.status.power_source = "charging"
                 self.status.charge_label = "Charging · full"
-                self.status.charge_detail = "status/trend · full"
+                self.status.charge_detail = (
+                    "USB cable" if usb_cable else "level was rising · at 100%"
+                )
             else:
                 self.status.is_charging = False
                 self.status.is_full = True
                 self.status.power_source = "full"
                 self.status.charge_label = "Fully charged"
-                self.status.charge_detail = "100% / status full"
+                self.status.charge_detail = "100%"
             return
 
-        if sticky is True or state_hint == "charging":
+        if sticky is True or usb_cable:
             self.status.is_charging = True
             self.status.is_full = False
             self.status.power_source = "charging"
             self.status.charge_label = "Charging"
-            why = []
+            bits = []
             if sticky is True:
-                why.append("level rising")
-            if state_hint == "charging":
-                why.append("device status")
-            self.status.charge_detail = " · ".join(why) or source
+                bits.append("battery % rising")
+            if usb_cable:
+                bits.append("USB cable detected")
+            self.status.charge_detail = " · ".join(bits)
             return
 
-        if sticky is False or state_hint == "battery":
+        if sticky is False:
             self.status.is_charging = False
             self.status.is_full = False
             self.status.power_source = "battery"
             self.status.charge_label = "On battery · in use"
-            why = []
-            if sticky is False:
-                why.append("level falling/stable")
-            if state_hint == "battery":
-                why.append("device status")
-            self.status.charge_detail = " · ".join(why) or "wireless use"
+            self.status.charge_detail = (
+                "battery % falling or stable · no charge flag from mouse"
+            )
             return
 
-        # No signal yet — honest unknown rather than guessing wrong
+        # Unknown (first polls)
         self.status.is_charging = None
         self.status.is_full = False
         self.status.power_source = "unknown"
         self.status.charge_label = "Detecting…"
-        self.status.charge_detail = "watching battery trend — plug USB-C to test charge"
+        self.status.charge_detail = (
+            "Firmware has no charge bit — waiting for % change, "
+            "or click Charging / On battery"
+        )
 
     # ----------------------------------------------------------------- reads
     def read_battery(self) -> Optional[int]:
@@ -346,63 +390,30 @@ class PopGoMouse:
             if not self.open():
                 return None
             try:
-                pkts = self._query([0x01], listen=0.12)
+                # Only CMD 01 — never interleave dumps here (they pollute reads)
+                pkts = self._query([0x01], listen=0.14)
             except RuntimeError as exc:
                 self.status.last_error = str(exc)
                 self.close()
                 return None
+
             pkt = self._first_matching(pkts, 0x01)
             self.status.raw_status = pkt
             if not pkt or len(pkt) < 4:
                 return None
 
-            state = int(pkt[2])
-            self.status.status_flags = state
-            pct = int(pkt[3])
+            # ONLY trust first 4 bytes (rest is often garbage)
+            self.status.status_flags = int(pkt[2])
+            pct = int(pkt[3]) & 0x7F
             if pct > 100:
-                if pct & 0x80:
-                    pct = pct & 0x7F
-                    forced_charge = True
-                else:
-                    pct = min(pct, 100)
-                    forced_charge = False
-            else:
-                forced_charge = False
+                pct = 100
 
-            # Supplementary CMD 0x04
-            cmd04_b3: Optional[int] = None
-            try:
-                st = self._query([0x04], listen=0.10)
-                sp = self._first_matching(st, 0x04)
-                self.status.raw_state = sp
-                if sp and len(sp) >= 4:
-                    cmd04_b3 = int(sp[3])
-            except RuntimeError:
-                pass
-
-            hint = self._state_byte_hint(state, cmd04_b3)
-            if forced_charge:
-                hint = "charging"
-
+            usb_cable = detect_usb_charge_cable()
             self.status.battery_percent = pct
             self._battery_history.append((time.time(), pct))
-            self._apply_power_result(pct, hint, source="hid")
+            self._apply_power_state(pct, usb_cable=usb_cable)
             self.status.last_update = time.time()
             return pct
-
-    def read_state(self) -> Optional[list[int]]:
-        with self._lock:
-            if not self.open():
-                return None
-            try:
-                pkts = self._query([0x04], listen=0.12)
-            except RuntimeError as exc:
-                self.status.last_error = str(exc)
-                self.close()
-                return None
-            pkt = self._first_matching(pkts, 0x04)
-            self.status.raw_state = pkt
-            return pkt
 
     def read_info(self) -> Optional[list[int]]:
         with self._lock:
@@ -425,21 +436,29 @@ class PopGoMouse:
             self.close()
             self.status.connected = False
             self.status.battery_percent = None
-            self.status.is_charging = None
-            self.status.is_full = False
-            self.status.power_source = "unknown"
-            self.status.charge_label = "—"
-            self.status.charge_detail = ""
+            if self._override == "auto":
+                self.status.is_charging = None
+                self.status.is_full = False
+                self.status.power_source = "unknown"
+                self.status.charge_label = "—"
+                self.status.charge_detail = "receiver not found"
             self.status.last_error = "Receiver not plugged in or mouse off"
             self.status.last_update = time.time()
+            self.status.override_mode = self._override
             return self.status
 
         if not self.open():
+            self.status.override_mode = self._override
             return self.status
 
         self.read_battery()
         if self.status.firmware is None:
-            self.read_info()
+            # Read info AFTER battery so we don't pollute the next battery read
+            # as badly; still drain heavily in _query.
+            try:
+                self.read_info()
+            except Exception:
+                pass
 
         if self._tracked_dpi_index is not None:
             self.status.dpi_index = self._tracked_dpi_index
@@ -450,6 +469,12 @@ class PopGoMouse:
 
         self.status.connected = True
         self.status.override_mode = self._override
+        # Re-apply override in case a concurrent path cleared labels
+        if self._override != "auto" and self.status.battery_percent is not None:
+            self._apply_power_state(self.status.battery_percent, usb_cable=False)
+        elif self._override != "auto":
+            self._force_override_labels(self._override)
+
         self.status.last_update = time.time()
         return self.status
 
@@ -478,7 +503,7 @@ class StatusPoller:
         self,
         mouse: PopGoMouse,
         on_update: Callable[[MouseStatus], None],
-        interval: float = 1.5,
+        interval: float = 1.0,
     ) -> None:
         self.mouse = mouse
         self.on_update = on_update

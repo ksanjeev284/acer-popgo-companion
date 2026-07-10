@@ -44,7 +44,7 @@ except ImportError:
 
 
 APP_NAME = "Acer PopGo Companion"
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.3.1"
 
 # Outer window is fixed; content scrolls so every control is reachable
 WINDOW_W = 500
@@ -76,7 +76,7 @@ def load_config() -> dict:
             pass
     return {
         "dpi_index": None,
-        "poll_seconds": 1.5,
+        "poll_seconds": 1.0,
         "power_mode": "auto",
         "start_minimized": False,
     }
@@ -352,13 +352,13 @@ class PopGoApp(ctk.CTk):
         # Power mode override (fixes wrong auto detection)
         ctk.CTkLabel(
             bat,
-            text="Power mode (auto uses device + battery trend):",
+            text="Set power status (Auto needs battery % to change):",
             font=ctk.CTkFont(size=10),
             text_color=MUTED,
             anchor="w",
         ).pack(anchor="w", padx=10, pady=(2, 2))
         mode_row = ctk.CTkFrame(bat, fg_color="transparent")
-        mode_row.pack(fill="x", padx=8, pady=(0, 8))
+        mode_row.pack(fill="x", padx=8, pady=(0, 4))
         for key, label in (
             ("auto", "Auto"),
             ("charging", "Charging"),
@@ -368,8 +368,8 @@ class PopGoApp(ctk.CTk):
             btn = ctk.CTkButton(
                 mode_row,
                 text=label,
-                height=28,
-                font=ctk.CTkFont(size=11),
+                height=30,
+                font=ctk.CTkFont(size=11, weight="bold"),
                 fg_color="#333333",
                 hover_color="#444444",
                 text_color="white",
@@ -377,6 +377,16 @@ class PopGoApp(ctk.CTk):
             )
             btn.pack(side="left", expand=True, fill="x", padx=2)
             self._power_btns[key] = btn
+        ctk.CTkLabel(
+            bat,
+            text="When you plug USB-C: press Charging. When you unplug: press On battery "
+            "(or Auto once % starts rising/falling).",
+            font=ctk.CTkFont(size=10),
+            text_color=MUTED,
+            anchor="w",
+            wraplength=WINDOW_W - 50,
+            justify="left",
+        ).pack(anchor="w", padx=10, pady=(0, 8))
         self._highlight_power_mode(self.mouse.get_power_override())
 
         # DPI
@@ -506,11 +516,17 @@ class PopGoApp(ctk.CTk):
 
     def _set_power_mode(self, mode: str) -> None:
         m: PowerMode = mode  # type: ignore[assignment]
-        self.mouse.set_power_override(m)
+        # Instant status update (does not wait on HID) so the UI always flips
+        status = self.mouse.set_power_override(m)
         self.cfg["power_mode"] = mode
         save_config(self.cfg)
         self._highlight_power_mode(m)
-        self._on_status(self.mouse.refresh())
+        self._apply_status(status)
+        # Then refresh battery % in background path
+        try:
+            self._on_status(self.mouse.refresh())
+        except Exception:
+            pass
 
     def _highlight_power_mode(self, mode: str) -> None:
         for key, btn in self._power_btns.items():
@@ -636,23 +652,31 @@ class PopGoApp(ctk.CTk):
     def _update_charge_ui(self, status: MouseStatus) -> None:
         src = status.power_source
         if src == "charging":
-            self.charge_badge.configure(text="⚡ Charging", text_color=BLUE)
-            self.charge_status.configure(text="Power: Charging", text_color=BLUE)
+            self.charge_badge.configure(text="CHARGING", text_color=BLUE)
+            self.charge_status.configure(text="Power: CHARGING", text_color=BLUE)
         elif src == "full":
-            self.charge_badge.configure(text="Full", text_color=ACER_GREEN)
-            self.charge_status.configure(text="Power: Fully charged", text_color=ACER_GREEN)
+            self.charge_badge.configure(text="FULL", text_color=ACER_GREEN)
+            self.charge_status.configure(text="Power: FULLY CHARGED", text_color=ACER_GREEN)
         elif src == "battery":
-            self.charge_badge.configure(text="On battery", text_color=YELLOW)
+            self.charge_badge.configure(text="ON BATTERY", text_color=YELLOW)
             self.charge_status.configure(
-                text="Power: Not charging · battery in use", text_color=YELLOW
+                text="Power: ON BATTERY (not charging)", text_color=YELLOW
             )
         else:
-            self.charge_badge.configure(text="Detecting…", text_color=MUTED)
+            self.charge_badge.configure(text="DETECTING…", text_color=MUTED)
             self.charge_status.configure(text="Power: detecting…", text_color=MUTED)
 
         detail = status.charge_detail or ""
         if status.override_mode != "auto":
-            detail = f"Manual: {status.override_mode}" + (f" · {detail}" if detail else "")
+            detail = f"Mode locked: {status.override_mode.upper()}" + (
+                f" — {detail}" if detail else ""
+            )
+        elif not detail:
+            detail = (
+                "Tip: this mouse does not send a charge flag over 2.4G. "
+                "Click Charging when USB-C is plugged in, or leave Auto "
+                "and wait for battery % to rise."
+            )
         self.charge_detail.configure(text=detail)
 
     def _maybe_notify_low_battery(self, status: MouseStatus) -> None:
