@@ -44,7 +44,7 @@ except ImportError:
 
 
 APP_NAME = "Acer PopGo Companion"
-APP_VERSION = "1.3.1"
+APP_VERSION = "1.3.2"
 
 # Outer window is fixed; content scrolls so every control is reachable
 WINDOW_W = 500
@@ -77,6 +77,7 @@ def load_config() -> dict:
     return {
         "dpi_index": None,
         "poll_seconds": 1.0,
+        # Always start Auto in a safe default; user can lock Charging manually
         "power_mode": "auto",
         "start_minimized": False,
     }
@@ -193,9 +194,17 @@ class PopGoApp(ctk.CTk):
                 self.mouse.set_tracked_dpi_index(int(self.cfg["dpi_index"]))
             except (TypeError, ValueError):
                 pass
+        # If a previous session left "charging" locked, that caused false positives.
+        # Only restore explicit manual modes if set; default Auto.
         mode = self.cfg.get("power_mode", "auto")
-        if mode in ("auto", "charging", "battery", "full"):
-            self.mouse.set_power_override(mode)  # type: ignore[arg-type]
+        if mode not in ("auto", "charging", "battery", "full"):
+            mode = "auto"
+        # Prefer Auto on startup so we never boot stuck on false "Charging"
+        if mode == "charging":
+            mode = "auto"
+            self.cfg["power_mode"] = "auto"
+            save_config(self.cfg)
+        self.mouse.set_power_override(mode)  # type: ignore[arg-type]
 
         self._tray = None
         self._tray_thread: Optional[threading.Thread] = None
