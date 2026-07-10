@@ -58,11 +58,12 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 | Feature | Details |
 |--------|---------|
 | **Live battery %** | Read from the mouse MCU over HID |
+| **Charging status** | Shows *Charging*, *On battery · in use*, or *Fully charged* |
 | **Fixed window** | Non-resizable UI sized so all controls fit |
 | **DPI tracker** | 800 → 6400 (8 steps); mark the active level after the hardware DPI button |
 | **Windows pointer speed** | OS slider 1–20 (Windows builds) |
-| **System tray** | Close to tray; battery tooltip |
-| **Low-battery toast** | Windows notification at ≤15% |
+| **System tray** | Close to tray; battery tooltip (bolt icon while charging) |
+| **Low-battery toast** | Notification when battery hits **≤10%** while not charging |
 
 ---
 

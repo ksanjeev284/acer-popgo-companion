@@ -15,7 +15,14 @@ from typing import Optional
 
 import customtkinter as ctk
 
-from mouse_device import DPI_LEVELS, BATTERY_CAPACITY_MAH, MouseStatus, PopGoMouse, StatusPoller
+from mouse_device import (
+    DPI_LEVELS,
+    BATTERY_CAPACITY_MAH,
+    LOW_BATTERY_PERCENT,
+    MouseStatus,
+    PopGoMouse,
+    StatusPoller,
+)
 
 IS_WINDOWS = sys.platform.startswith("win")
 IS_LINUX = sys.platform.startswith("linux")
@@ -36,11 +43,11 @@ except ImportError:
 
 
 APP_NAME = "Acer PopGo Companion"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 # Fixed window — sized so every control is visible without resizing
 WINDOW_W = 480
-WINDOW_H = 700
+WINDOW_H = 720
 
 ACER_GREEN = "#83B81A"
 ACER_DARK = "#1A1A1A"
@@ -129,17 +136,22 @@ def battery_color(percent: Optional[int]) -> str:
     return ACER_GREEN
 
 
-def make_tray_image(percent: Optional[int]) -> "Image.Image":
+def make_tray_image(
+    percent: Optional[int], charging: Optional[bool] = False
+) -> "Image.Image":
     size = 64
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    color = battery_color(percent)
+    color = "#3498DB" if charging else battery_color(percent)
     draw.rounded_rectangle((10, 18, 48, 46), radius=6, outline=color, width=3)
     draw.rectangle((48, 26, 54, 38), fill=color)
     if percent is not None:
         fill_w = int(30 * max(0, min(100, percent)) / 100)
         if fill_w > 0:
             draw.rounded_rectangle((14, 22, 14 + fill_w, 42), radius=3, fill=color)
+    if charging:
+        # simple bolt
+        draw.polygon([(30, 16), (22, 34), (29, 34), (26, 48), (38, 28), (31, 28)], fill=color)
     return img
 
 
@@ -181,7 +193,8 @@ class PopGoApp(ctk.CTk):
         self._tray = None
         self._tray_thread: Optional[threading.Thread] = None
         self._closing = False
-        self._last_low_notify_pct: Optional[int] = None
+        # Fire low-battery toast once per discharge cycle at ~10%
+        self._low_battery_notified = False
 
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -271,11 +284,26 @@ class PopGoApp(ctk.CTk):
             font=ctk.CTkFont(size=11),
             text_color=MUTED,
         ).pack(side="left", pady=(10, 0))
+        self.charge_badge = ctk.CTkLabel(
+            row,
+            text="  ·  —",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=MUTED,
+        )
+        self.charge_badge.pack(side="left", pady=(10, 0))
         self.bat_bar = ctk.CTkProgressBar(
             bat, height=10, progress_color=ACER_GREEN, fg_color="#333333"
         )
         self.bat_bar.pack(fill="x", padx=12, pady=(0, 4))
         self.bat_bar.set(0)
+        self.charge_status = ctk.CTkLabel(
+            bat,
+            text="Power: detecting…",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="white",
+            anchor="w",
+        )
+        self.charge_status.pack(anchor="w", padx=12, pady=(0, 2))
         self.bat_status = ctk.CTkLabel(
             bat,
             text="Waiting for HID readout…",
@@ -461,24 +489,34 @@ class PopGoApp(ctk.CTk):
             self.conn_label.configure(text="Not connected — plug in USB receiver")
 
         pct = status.battery_percent
+        self._update_charge_ui(status)
         if pct is not None:
             self.bat_value.configure(text=f"{pct}%", text_color=battery_color(pct))
             self.bat_bar.set(pct / 100.0)
-            self.bat_bar.configure(progress_color=battery_color(pct))
+            bar_color = (
+                "#3498DB" if status.is_charging else battery_color(pct)
+            )
+            self.bat_bar.configure(progress_color=bar_color)
             tips = {
-                "critical": "Charge soon — under 10% (LED may flash red).",
-                "low": "Battery low — plan to recharge.",
+                "critical": f"Critical — {LOW_BATTERY_PERCENT}% or less. Plug in to charge.",
+                "low": "Battery low — plan to recharge soon.",
                 "medium": "Battery OK.",
                 "good": "Battery healthy.",
+                "high": "Battery strong.",
                 "full": "Battery full / near full.",
             }
-            self.bat_status.configure(text=tips.get(status.battery_level_name, ""))
-            if pct <= 15 and self._last_low_notify_pct != pct:
-                self._last_low_notify_pct = pct
-                self._notify_low_battery(pct)
+            tip = tips.get(status.battery_level_name, "")
+            if status.is_charging:
+                tip = "USB power connected — battery is charging."
+            elif status.is_full:
+                tip = "Charge complete — you can unplug."
+            self.bat_status.configure(text=tip)
+            self._maybe_notify_low_battery(status)
         else:
             self.bat_value.configure(text="—", text_color=MUTED)
             self.bat_bar.set(0)
+            self.charge_badge.configure(text="  ·  —", text_color=MUTED)
+            self.charge_status.configure(text="Power: —", text_color=MUTED)
             self.bat_status.configure(text=status.last_error or "No battery data yet")
 
         idx = status.dpi_index
@@ -503,14 +541,53 @@ class PopGoApp(ctk.CTk):
 
         if HAS_TRAY and self._tray is not None:
             try:
-                self._tray.icon = make_tray_image(pct)
+                self._tray.icon = make_tray_image(pct, status.is_charging)
+                charge = status.charge_label if status.connected else "disconnected"
                 self._tray.title = (
-                    f"PopGo  {pct}%  ·  {status.dpi_label}"
+                    f"PopGo  {pct}%  ·  {charge}"
                     if pct is not None
-                    else "PopGo · disconnected"
+                    else f"PopGo · {charge}"
                 )
             except Exception:
                 pass
+
+    def _update_charge_ui(self, status: MouseStatus) -> None:
+        src = status.power_source
+        if src == "charging":
+            self.charge_badge.configure(text="  ·  ⚡ Charging", text_color="#3498DB")
+            self.charge_status.configure(
+                text="Power: Charging (cable / charge mode)",
+                text_color="#3498DB",
+            )
+        elif src == "full":
+            self.charge_badge.configure(text="  ·  Full", text_color=ACER_GREEN)
+            self.charge_status.configure(
+                text="Power: Fully charged",
+                text_color=ACER_GREEN,
+            )
+        elif src == "battery":
+            self.charge_badge.configure(text="  ·  On battery", text_color="#F1C40F")
+            self.charge_status.configure(
+                text="Power: Not charging · battery in use",
+                text_color="#F1C40F",
+            )
+        else:
+            self.charge_badge.configure(text="  ·  —", text_color=MUTED)
+            self.charge_status.configure(text="Power: detecting…", text_color=MUTED)
+
+    def _maybe_notify_low_battery(self, status: MouseStatus) -> None:
+        """Notify once when battery hits ~10% while not charging."""
+        pct = status.battery_percent
+        if pct is None:
+            return
+        # Re-arm after recovery or when user starts charging
+        if pct > LOW_BATTERY_PERCENT + 5 or status.is_charging:
+            self._low_battery_notified = False
+            return
+        if pct <= LOW_BATTERY_PERCENT and not status.is_charging:
+            if not self._low_battery_notified:
+                self._low_battery_notified = True
+                self._notify_low_battery(pct)
 
     @staticmethod
     def _fmt_age(ts: float) -> str:
@@ -524,33 +601,49 @@ class PopGoApp(ctk.CTk):
         return f"{age // 60}m ago"
 
     def _notify_low_battery(self, pct: int) -> None:
-        if not IS_WINDOWS:
-            return
+        title = "Acer PopGo — battery almost empty"
+        msg = (
+            f"Battery is at {pct}% (critical ≤{LOW_BATTERY_PERCENT}%). "
+            "Not charging — plug in the USB-C cable."
+        )
+        # Always try to surface in the UI / tray title
         try:
-            import subprocess
-
-            title = "Acer PopGo battery low"
-            msg = f"Mouse battery is at {pct}%. Plug in to charge."
-            ps = (
-                "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, "
-                "ContentType = WindowsRuntime] > $null; "
-                "$template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent("
-                "[Windows.UI.Notifications.ToastTemplateType]::ToastText02); "
-                '$text = $template.GetElementsByTagName("text"); '
-                f'$text.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; '
-                f'$text.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; '
-                "$toast = [Windows.UI.Notifications.ToastNotification]::new($template); "
-                '[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('
-                '"Acer PopGo Companion").Show($toast);'
-            )
-            subprocess.Popen(
-                ["powershell", "-NoProfile", "-Command", ps],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            )
+            self.bat_status.configure(text=msg)
         except Exception:
             pass
+
+        if IS_WINDOWS:
+            try:
+                import subprocess
+
+                # Escape for PowerShell single-quoted strings
+                t = title.replace("'", "''")
+                m = msg.replace("'", "''")
+                ps = (
+                    "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, "
+                    "ContentType = WindowsRuntime] > $null; "
+                    "$template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent("
+                    "[Windows.UI.Notifications.ToastTemplateType]::ToastText02); "
+                    '$text = $template.GetElementsByTagName("text"); '
+                    f"$text.Item(0).AppendChild($template.CreateTextNode('{t}')) > $null; "
+                    f"$text.Item(1).AppendChild($template.CreateTextNode('{m}')) > $null; "
+                    "$toast = [Windows.UI.Notifications.ToastNotification]::new($template); "
+                    "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("
+                    "'Acer PopGo Companion').Show($toast);"
+                )
+                subprocess.Popen(
+                    ["powershell", "-NoProfile", "-Command", ps],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+            except Exception:
+                pass
+        elif HAS_TRAY and self._tray is not None:
+            try:
+                self._tray.notify(msg, title)
+            except Exception:
+                pass
 
     # ------------------------------------------------------------------- tray
     def _start_tray(self) -> None:
@@ -569,7 +662,10 @@ class PopGoApp(ctk.CTk):
         )
         self._tray = pystray.Icon(
             "popgo",
-            make_tray_image(self.mouse.status.battery_percent),
+            make_tray_image(
+                self.mouse.status.battery_percent,
+                self.mouse.status.is_charging,
+            ),
             APP_NAME,
             menu,
         )
