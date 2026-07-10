@@ -25,3 +25,5 @@ desktop.ini
 # Logs / local
 *.log
 .sessions/
+
+release-artifacts/

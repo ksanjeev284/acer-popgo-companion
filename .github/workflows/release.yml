@@ -1,7 +1,5 @@
-# Build native binaries for Windows, Linux, and macOS and attach them
-# to a GitHub Release when a version tag is pushed (e.g. v1.1.0).
-#
-# Manual run: Actions → "Release builds" → Run workflow
+# Build native binaries and publish a GitHub Release on version tags (v*).
+# Also runnable manually from the Actions tab.
 
 name: Release builds
 
@@ -12,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to create/update (e.g. v1.1.0). Leave empty to only build artifacts."
-        required: false
-        default: ""
+        description: "Release tag (e.g. v1.3.0). Required to publish a release from a manual run."
+        required: true
+        default: "v1.3.0"
 
 permissions:
   contents: write
@@ -27,22 +25,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Reliable free runners — avoid macos-13 (often stuck in queue forever)
           - os: windows-latest
             name: windows-x64
             artifact: AcerPopGoCompanion-windows-x64.exe
-            exe_name: AcerPopGoCompanion.exe
           - os: ubuntu-22.04
             name: linux-x64
             artifact: AcerPopGoCompanion-linux-x64
-            exe_name: AcerPopGoCompanion
-          - os: macos-13
-            name: macos-x64
-            artifact: AcerPopGoCompanion-macos-x64
-            exe_name: AcerPopGoCompanion
-          - os: macos-14
+          - os: macos-latest
             name: macos-arm64
             artifact: AcerPopGoCompanion-macos-arm64
-            exe_name: AcerPopGoCompanion
 
     steps:
       - name: Checkout
@@ -67,58 +59,79 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyinstaller
+          pip install "pyinstaller>=6.0"
 
       - name: Build with PyInstaller
-        run: |
-          pyinstaller --noconfirm --clean popgo.spec
+        run: pyinstaller --noconfirm --clean popgo.spec
 
       - name: Package Windows artifact
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          if (-not (Test-Path "dist\AcerPopGoCompanion.exe")) {
+            Get-ChildItem -Recurse dist | Format-Table
+            throw "Windows exe missing"
+          }
           Copy-Item "dist\AcerPopGoCompanion.exe" "${{ matrix.artifact }}"
           Get-Item "${{ matrix.artifact }}" | Format-List Name, Length
 
       - name: Package Linux artifact
         if: runner.os == 'Linux'
         run: |
+          test -f dist/AcerPopGoCompanion
           cp dist/AcerPopGoCompanion "${{ matrix.artifact }}"
           chmod +x "${{ matrix.artifact }}"
-          # Ship udev rule next to the binary for battery access without root
           cp packaging/99-acer-popgo.rules .
-          tar -czf "${{ matrix.artifact }}.tar.gz" "${{ matrix.artifact }}" 99-acer-popgo.rules README.md
+          tar -czf "${{ matrix.artifact }}.tar.gz" \
+            "${{ matrix.artifact }}" 99-acer-popgo.rules README.md LICENSE
           ls -la "${{ matrix.artifact }}"*
 
       - name: Package macOS artifact
         if: runner.os == 'macOS'
         run: |
-          # Prefer .app bundle if produced, else raw binary
           if [ -d "dist/AcerPopGoCompanion.app" ]; then
             ditto -c -k --keepParent "dist/AcerPopGoCompanion.app" "${{ matrix.artifact }}.zip"
-          else
+          elif [ -f "dist/AcerPopGoCompanion" ]; then
             cp dist/AcerPopGoCompanion "${{ matrix.artifact }}"
             chmod +x "${{ matrix.artifact }}"
-            zip "${{ matrix.artifact }}.zip" "${{ matrix.artifact }}"
+            zip -9 "${{ matrix.artifact }}.zip" "${{ matrix.artifact }}"
+          else
+            echo "No macOS binary produced" >&2
+            ls -laR dist || true
+            exit 1
           fi
           ls -la "${{ matrix.artifact }}"*
 
-      - name: Upload build artifact
+      - name: Upload Windows
+        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
-          path: |
-            ${{ matrix.artifact }}
-            ${{ matrix.artifact }}.tar.gz
-            ${{ matrix.artifact }}.zip
+          path: ${{ matrix.artifact }}
           if-no-files-found: error
-          retention-days: 14
+
+      - name: Upload Linux
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.artifact }}.tar.gz
+          if-no-files-found: error
+
+      - name: Upload macOS
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.artifact }}.zip
+          if-no-files-found: error
 
   release:
     name: Publish GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.tag != ''
+    # Publish even if one OS failed (upload whatever succeeded)
+    if: always() && needs.build.result != 'cancelled' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -127,25 +140,29 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-assets
+          merge-multiple: true
 
-      - name: Flatten assets
+      - name: List assets
         run: |
           mkdir -p out
-          find release-assets -type f \( \
-            -name '*.exe' -o -name '*.tar.gz' -o -name '*.zip' -o -name 'AcerPopGoCompanion-linux-x64' \
-          \) -exec cp -v {} out/ \;
-          ls -la out/
+          find release-assets -type f -print
+          # Flatten any nested dirs
+          find release-assets -type f \( -name '*.exe' -o -name '*.tar.gz' -o -name '*.zip' \) \
+            -exec cp -v {} out/ \;
+          echo "--- out/ ---"
+          ls -la out/ || true
+          test "$(ls -A out 2>/dev/null)" || (echo "No release assets found" && exit 1)
 
       - name: Resolve tag name
         id: tag
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag }}" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "name=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
           else
             echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create / update GitHub Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.name }}
@@ -153,30 +170,45 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          fail_on_unmatched_files: false
           body: |
             ## Acer PopGo Companion ${{ steps.tag.outputs.name }}
 
-            Unofficial companion for the Acer PopGo wireless mouse.
+            Unofficial companion for the **Acer PopGo** wireless mouse — battery %, charging status, DPI tracker.
 
             ### Downloads
+
             | Platform | File |
             |----------|------|
             | **Windows x64** | `AcerPopGoCompanion-windows-x64.exe` |
             | **Linux x64** | `AcerPopGoCompanion-linux-x64.tar.gz` |
-            | **macOS Intel** | `AcerPopGoCompanion-macos-x64.zip` |
             | **macOS Apple Silicon** | `AcerPopGoCompanion-macos-arm64.zip` |
 
-            ### Notes
-            - Use the **2.4 GHz USB dongle** for battery readout (`VID:PID 32C2:0066`).
-            - **Linux:** install the included `99-acer-popgo.rules` udev rule, then replug the dongle:
-              ```bash
-              sudo cp 99-acer-popgo.rules /etc/udev/rules.d/
-              sudo udevadm control --reload-rules && sudo udevadm trigger
-              ```
-            - **macOS:** if Gatekeeper blocks the app, right-click → Open, or:
-              `xattr -cr AcerPopGoCompanion.app`
-            - Not affiliated with Acer Inc.
+            > Intel Mac: build from source (`pip install -r requirements.txt && python app.py`) or use PyInstaller locally.
 
-          files: out/*
+            ### Quick start (Windows)
+
+            1. Download `AcerPopGoCompanion-windows-x64.exe`
+            2. Run it (SmartScreen → More info → Run anyway if prompted)
+            3. Plug in the **2.4 GHz USB dongle** and wake the mouse
+
+            ### Linux
+
+            ```bash
+            tar -xzf AcerPopGoCompanion-linux-x64.tar.gz
+            sudo cp 99-acer-popgo.rules /etc/udev/rules.d/
+            sudo udevadm control --reload-rules && sudo udevadm trigger
+            ./AcerPopGoCompanion-linux-x64
+            ```
+
+            ### macOS
+
+            Unzip, then if Gatekeeper blocks: right-click → Open, or `xattr -cr` the app.
+
+            ### Notes
+
+            - Prefer the **2.4 GHz dongle** for battery/charge readout (`VID:PID 32C2:0066`)
+            - Use **Charging / On battery** buttons if Auto charge detection lags
+            - Not affiliated with Acer Inc. · MIT License
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
