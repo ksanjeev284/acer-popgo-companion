@@ -55,7 +55,8 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 
 ## What this app can and cannot do
 
-**Read this first** — PopGo is a plug-and-play OEM mouse (**no official Acer software**). Full details: [`docs/HARDWARE.md`](docs/HARDWARE.md).
+**Read this first** — PopGo is a plug-and-play OEM mouse (**no official Acer software**).  
+Full details: [`docs/HARDWARE.md`](docs/HARDWARE.md) · 2.4G command map: [`docs/PROTOCOL_MAP.md`](docs/PROTOCOL_MAP.md).
 
 | | |
 |--|--|

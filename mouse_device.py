@@ -407,6 +407,18 @@ class PopGoMouse:
             self.status.raw_info = pkt
             if pkt and len(pkt) >= 4:
                 self.status.firmware = f"{pkt[2]}.{pkt[3]}"
+
+            # Experimental: CMD 0x2B byte[2] may be a 0..7 stage (unproven)
+            try:
+                pk2 = self._query([0x2B], listen=0.10)
+            except RuntimeError:
+                pk2 = []
+            p2 = self._first_matching(pk2, 0x2B) if pk2 else None
+            if p2 and len(p2) >= 3:
+                stage = int(p2[2])
+                if 0 <= stage < len(DPI_LEVELS) and self._tracked_dpi_index is None:
+                    self.status.dpi_index = stage
+                    self.status.dpi = DPI_LEVELS[stage]
             return pkt
 
     def refresh(self) -> MouseStatus:
