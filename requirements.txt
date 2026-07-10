@@ -2,3 +2,4 @@ hidapi>=0.14.0
 customtkinter>=5.2.0
 Pillow>=10.0.0
 pystray>=0.19.0
+winsdk>=1.0.0; platform_system=="Windows"

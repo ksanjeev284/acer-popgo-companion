@@ -137,14 +137,34 @@ No open-source host protocol for this ID was found (no libratbag/OpenRGB entry).
 
 ---
 
+## BLE mode (paired as “Acer PopGo BT5.4”) — confirmed live
+
+When connected over Bluetooth LE (not the dongle):
+
+| Item | Value |
+|------|--------|
+| Name | `Acer PopGo BT5.4` |
+| Address (example) | `F9:00:C6:02:14:01` |
+| BLE VID/PID | `0x32C2` / `0x0026` (PnP: `DEV_VID&0232C2_PID&0026`) |
+| **Battery Service** | **`0x180F`** |
+| **Battery Level** | **`0x2A19`** — **uint8 percent, READ + NOTIFY** |
+| Live reading | **100%** (while 2.4G MCU byte was stuck at 56%) |
+| Device Information | `0x180A` / PnP ID `0x2A50` → VID `32C2` PID `0026` |
+| HID over GATT | `0x1812` (Windows owns; characteristic enum may access-deny) |
+| GAP name | `0x2A00` = `Acer PopGo BT5.4` |
+
+**Conclusion:** Prefer **BLE Battery Level** over 2.4G firmware % when the mouse is paired over BT. Implemented in `ble_battery.py` (Windows WinRT / winsdk).
+
 ## What we can still try later (research backlog)
 
-1. **Bluetooth mode** — pair PopGo over BT and check for GATT Battery Service (`0x180F`) or HID over GATT battery  
-2. **USB-C data mode** — if any unit enumerates as a second USB device when plugged into PC (many only charge)  
-3. **Long-run voltage log** — confirm mV tracks charge/discharge over hours  
-4. **Logic analyzer on mouse PCB** — only way to fully map DPI LED / charge LED to MCU pins  
-5. **OnMicro SDK / bbs** — if OEM docs leak host command tables  
-6. **CMD `0x2B` byte[2]** — candidate “level” (seen as `5`); needs DPI-button experiment while polling  
+1. ~~**Bluetooth Battery Service**~~ **DONE** — `0x2A19` works  
+2. BLE Battery Power State / Level Status if firmware adds them  
+3. Subscribe to `0x2A19` notifications (prop includes Notify) instead of polling  
+4. **USB-C data mode** — second USB device when plugged into PC  
+5. **Long-run voltage log** on 2.4G — confirm mV tracks charge  
+6. **Logic analyzer** for DPI / charge LED  
+7. **OnMicro SDK / bbs** host command tables  
+8. **CMD `0x2B` byte[2]** as DPI stage while pressing DPI button  
 
 ---
 

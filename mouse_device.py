@@ -106,7 +106,9 @@ class MouseStatus:
     battery_percent: Optional[int] = None  # value shown in UI
     firmware_percent: Optional[int] = None  # raw byte from MCU (may stick)
     voltage_mv: Optional[int] = None
-    percent_source: str = "unknown"  # voltage | firmware
+    percent_source: str = "unknown"  # ble | voltage | firmware
+    ble_percent: Optional[int] = None
+    connection_mode: str = "unknown"  # ble | dongle | both | none
     is_charging: Optional[bool] = None
     is_full: bool = False
     power_source: PowerSource = "unknown"
@@ -171,6 +173,9 @@ class PopGoMouse:
         self._last_percent: Optional[int] = None
         self._rise_streak: int = 0
         self._assist_enabled: bool = True  # auto flip to charging on clear rise
+        self._ble_percent: Optional[int] = None
+        self._ble_name: Optional[str] = None
+        self._ble_ts: float = 0.0
 
     # ------------------------------------------------------------------ open
     def find_device_info(self) -> list[dict]:
@@ -286,6 +291,16 @@ class PopGoMouse:
         """Big UI switch: True = charging cable connected."""
         return self.set_power_override("charging" if plugged_in else "battery")
 
+    def set_ble_battery(self, percent: int, device_name: str = "Acer PopGo BT") -> None:
+        """Inject BLE GATT Battery Level (0x2A19) reading."""
+        with self._lock:
+            self._ble_percent = max(0, min(100, int(percent)))
+            self._ble_name = device_name
+            self._ble_ts = time.time()
+            # Recompute display percent preference
+            if self.status.battery_percent is not None or self._ble_percent is not None:
+                self._merge_battery_sources()
+
     def _note_percent_trend(self, pct: int) -> None:
         """Assist: rise → suggest/set charging; fall while charging → on battery."""
         if self._last_percent is None:
@@ -387,11 +402,44 @@ class PopGoMouse:
             display_pct, fw_pct, voltage_mv, source = parse_status_packet(pkt)
             self.status.firmware_percent = fw_pct
             self.status.voltage_mv = voltage_mv
-            self.status.percent_source = source
-            self.status.battery_percent = display_pct
-            self._apply_power_state(display_pct, from_user=False)
+            # Prefer BLE Battery Service when fresh (< 60s)
+            self.status.ble_percent = self._ble_percent
+            if (
+                self._ble_percent is not None
+                and (time.time() - self._ble_ts) < 60.0
+            ):
+                self.status.battery_percent = self._ble_percent
+                self.status.percent_source = "ble"
+            else:
+                self.status.battery_percent = display_pct
+                self.status.percent_source = source
+            self._update_connection_mode(dongle=True)
+            self._apply_power_state(self.status.battery_percent, from_user=False)
             self.status.last_update = time.time()
-            return display_pct
+            return self.status.battery_percent
+
+    def _merge_battery_sources(self) -> None:
+        """Prefer BLE % when available, else keep HID/voltage estimate."""
+        if self._ble_percent is not None and (time.time() - self._ble_ts) < 60.0:
+            self.status.ble_percent = self._ble_percent
+            self.status.battery_percent = self._ble_percent
+            self.status.percent_source = "ble"
+            self._update_connection_mode(dongle=self.is_present())
+            self._apply_power_state(self._ble_percent, from_user=False)
+            self.status.last_update = time.time()
+
+    def _update_connection_mode(self, dongle: bool) -> None:
+        ble_alive = (
+            self._ble_percent is not None and (time.time() - self._ble_ts) < 90.0
+        )
+        if dongle and ble_alive:
+            self.status.connection_mode = "both"
+        elif ble_alive:
+            self.status.connection_mode = "ble"
+        elif dongle:
+            self.status.connection_mode = "dongle"
+        else:
+            self.status.connection_mode = "none"
 
     def read_info(self) -> Optional[list[int]]:
         with self._lock:
@@ -422,41 +470,52 @@ class PopGoMouse:
             return pkt
 
     def refresh(self) -> MouseStatus:
-        if not self.is_present():
+        dongle = self.is_present()
+        ble_alive = (
+            self._ble_percent is not None and (time.time() - self._ble_ts) < 90.0
+        )
+
+        if not dongle and not ble_alive:
             self.close()
             self.status.connected = False
             self.status.battery_percent = None
-            self.status.last_error = "Receiver not plugged in or mouse off"
-            # Keep manual charge label if set; otherwise clear to battery-ish dash
+            self.status.last_error = "No dongle and no BLE battery — pair PopGo or plug receiver"
             if self._override in ("auto", "battery"):
                 self.status.is_charging = False
                 self.status.power_source = "unknown"
                 self.status.charge_label = "—"
-                self.status.charge_detail = "receiver not found"
+                self.status.charge_detail = "not connected"
+            self.status.connection_mode = "none"
             self.status.override_mode = self._override
             self.status.last_update = time.time()
             return self.status
 
-        if not self.open():
-            self.status.override_mode = self._override
-            return self.status
-
-        self.read_battery()
-        if self.status.firmware is None:
-            try:
-                self.read_info()
-            except Exception:
-                pass
+        if dongle:
+            if not self.open():
+                if not ble_alive:
+                    self.status.override_mode = self._override
+                    return self.status
+            else:
+                self.read_battery()
+                if self.status.firmware is None:
+                    try:
+                        self.read_info()
+                    except Exception:
+                        pass
+        elif ble_alive:
+            # BLE-only path
+            self.status.connected = True
+            self.status.last_error = None
+            self._merge_battery_sources()
+            if self._ble_name:
+                self.status.product_name = self._ble_name
 
         if self._tracked_dpi_index is not None:
             self.status.dpi_index = self._tracked_dpi_index
             self.status.dpi = DPI_LEVELS[self._tracked_dpi_index]
-        else:
-            self.status.dpi_index = None
-            self.status.dpi = None
 
         self.status.connected = True
-        # Always re-apply so charge label cannot stick from a previous mode
+        self._update_connection_mode(dongle=dongle)
         self._apply_power_state(self.status.battery_percent)
         self.status.last_update = time.time()
         return self.status

@@ -6,11 +6,21 @@ import sys
 
 from mouse_device import PopGoMouse
 
+try:
+    from ble_battery import read_ble_battery_sync
+except ImportError:
+    read_ble_battery_sync = None  # type: ignore
+
 
 def main() -> int:
     m = PopGoMouse()
-    if not m.is_present():
-        print("Mouse not found. Plug in the 2.4G USB receiver and power the mouse on.")
+    if read_ble_battery_sync is not None:
+        ble = read_ble_battery_sync()
+        if ble is not None:
+            m.set_ble_battery(ble.percent, ble.device_name)
+            print(f"BLE: {ble.device_name} battery={ble.percent}% addr={ble.address_hex}")
+    if not m.is_present() and m.status.ble_percent is None:
+        print("Mouse not found. Plug in the 2.4G USB receiver or pair via Bluetooth.")
         return 1
     s = m.refresh()
     print(
@@ -22,6 +32,8 @@ def main() -> int:
                 "firmware_percent": s.firmware_percent,
                 "voltage_mv": s.voltage_mv,
                 "percent_source": s.percent_source,
+                "ble_percent": s.ble_percent,
+                "connection_mode": s.connection_mode,
                 "is_charging": s.is_charging,
                 "is_full": s.is_full,
                 "power_source": s.power_source,

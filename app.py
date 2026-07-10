@@ -25,6 +25,13 @@ from mouse_device import (
     StatusPoller,
 )
 
+try:
+    from ble_battery import BleBatteryPoller, BleBatteryReading
+
+    HAS_BLE = True
+except ImportError:
+    HAS_BLE = False
+
 IS_WINDOWS = sys.platform.startswith("win")
 IS_LINUX = sys.platform.startswith("linux")
 IS_MAC = sys.platform == "darwin"
@@ -44,7 +51,7 @@ except ImportError:
 
 
 APP_NAME = "Acer PopGo Companion"
-APP_VERSION = "1.3.6"
+APP_VERSION = "1.4.0"
 
 # Outer window is fixed; content scrolls so every control is reachable
 WINDOW_W = 500
@@ -210,6 +217,15 @@ class PopGoApp(ctk.CTk):
         interval = float(self.cfg.get("poll_seconds", 1.5))
         self.poller = StatusPoller(self.mouse, self._on_status, interval=interval)
         self.poller.start()
+
+        self._ble_poller = None
+        if HAS_BLE and IS_WINDOWS:
+            def _on_ble(reading: BleBatteryReading) -> None:
+                self.mouse.set_ble_battery(reading.percent, reading.device_name)
+                self._on_status(self.mouse.refresh())
+
+            self._ble_poller = BleBatteryPoller(_on_ble, interval=12.0)
+            self._ble_poller.start()
 
         self.after(80, lambda: self._on_status(self.mouse.refresh()))
         self.after(40, lambda: center_window(self, WINDOW_W, WINDOW_H))
@@ -610,6 +626,10 @@ class PopGoApp(ctk.CTk):
                 meta_bits.append(f"MCU raw {status.firmware_percent}%")
             if status.percent_source == "voltage":
                 meta_bits.append("est. from voltage")
+            if status.percent_source == "ble":
+                meta_bits.append("BLE Battery Service")
+            if status.connection_mode and status.connection_mode != "unknown":
+                meta_bits.append(f"link:{status.connection_mode}")
             self.bat_meta.configure(text=" · ".join(meta_bits))
 
             tips = {
@@ -625,10 +645,12 @@ class PopGoApp(ctk.CTk):
                 tip = "Charging — leave USB-C plugged in."
             elif status.is_full:
                 tip = "Full — safe to unplug."
-            if status.percent_source == "voltage" and status.firmware_percent == 56:
+            if status.percent_source == "ble":
+                tip = (tip + " " if tip else "") + "Source: Bluetooth GATT battery (best)."
+            elif status.percent_source == "voltage" and status.firmware_percent is not None:
                 tip = (
                     (tip + " ") if tip else ""
-                ) + "Note: mouse firmware often freezes at 56%; we estimate % from voltage."
+                ) + f"2.4G MCU raw {status.firmware_percent}% may stick; using voltage estimate."
             self.bat_status.configure(text=tip.strip())
             self._maybe_notify_low_battery(status)
         else:
@@ -796,6 +818,11 @@ class PopGoApp(ctk.CTk):
         self._closing = True
         try:
             self.poller.stop()
+        except Exception:
+            pass
+        try:
+            if self._ble_poller is not None:
+                self._ble_poller.stop()
         except Exception:
             pass
         try:
