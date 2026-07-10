@@ -98,11 +98,19 @@ class PopGoMouse:
 
     # ------------------------------------------------------------------ open
     def find_device_info(self) -> list[dict]:
-        return [
+        """Prefer vendor usage page 0xFFB5; fall back to any non-boot collection."""
+        all_devs = list(hid.enumerate(VENDOR_ID, PRODUCT_ID))
+        vendor = [d for d in all_devs if d.get("usage_page") == USAGE_PAGE_VENDOR]
+        if vendor:
+            return vendor
+        # Some Linux/macOS stacks report usage pages differently
+        fallback = [
             d
-            for d in hid.enumerate(VENDOR_ID, PRODUCT_ID)
-            if d.get("usage_page") == USAGE_PAGE_VENDOR
+            for d in all_devs
+            if d.get("usage_page", 0) >= 0xFF00
+            or (d.get("interface_number") == 1 and d.get("usage") not in (0x02, 0x06))
         ]
+        return fallback or all_devs
 
     def is_present(self) -> bool:
         return bool(self.find_device_info())

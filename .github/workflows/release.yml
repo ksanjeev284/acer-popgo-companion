@@ -1,0 +1,182 @@
+# Build native binaries for Windows, Linux, and macOS and attach them
+# to a GitHub Release when a version tag is pushed (e.g. v1.1.0).
+#
+# Manual run: Actions → "Release builds" → Run workflow
+
+name: Release builds
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create/update (e.g. v1.1.0). Leave empty to only build artifacts."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x64
+            artifact: AcerPopGoCompanion-windows-x64.exe
+            exe_name: AcerPopGoCompanion.exe
+          - os: ubuntu-22.04
+            name: linux-x64
+            artifact: AcerPopGoCompanion-linux-x64
+            exe_name: AcerPopGoCompanion
+          - os: macos-13
+            name: macos-x64
+            artifact: AcerPopGoCompanion-macos-x64
+            exe_name: AcerPopGoCompanion
+          - os: macos-14
+            name: macos-arm64
+            artifact: AcerPopGoCompanion-macos-arm64
+            exe_name: AcerPopGoCompanion
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Linux GUI / HID build deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libhidapi-hidraw0 libhidapi-libusb0 libhidapi-dev \
+            libusb-1.0-0-dev \
+            python3-tk \
+            libxkbcommon0 libgtk-3-0
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --noconfirm --clean popgo.spec
+
+      - name: Package Windows artifact
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Copy-Item "dist\AcerPopGoCompanion.exe" "${{ matrix.artifact }}"
+          Get-Item "${{ matrix.artifact }}" | Format-List Name, Length
+
+      - name: Package Linux artifact
+        if: runner.os == 'Linux'
+        run: |
+          cp dist/AcerPopGoCompanion "${{ matrix.artifact }}"
+          chmod +x "${{ matrix.artifact }}"
+          # Ship udev rule next to the binary for battery access without root
+          cp packaging/99-acer-popgo.rules .
+          tar -czf "${{ matrix.artifact }}.tar.gz" "${{ matrix.artifact }}" 99-acer-popgo.rules README.md
+          ls -la "${{ matrix.artifact }}"*
+
+      - name: Package macOS artifact
+        if: runner.os == 'macOS'
+        run: |
+          # Prefer .app bundle if produced, else raw binary
+          if [ -d "dist/AcerPopGoCompanion.app" ]; then
+            ditto -c -k --keepParent "dist/AcerPopGoCompanion.app" "${{ matrix.artifact }}.zip"
+          else
+            cp dist/AcerPopGoCompanion "${{ matrix.artifact }}"
+            chmod +x "${{ matrix.artifact }}"
+            zip "${{ matrix.artifact }}.zip" "${{ matrix.artifact }}"
+          fi
+          ls -la "${{ matrix.artifact }}"*
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            ${{ matrix.artifact }}
+            ${{ matrix.artifact }}.tar.gz
+            ${{ matrix.artifact }}.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.tag != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Flatten assets
+        run: |
+          mkdir -p out
+          find release-assets -type f \( \
+            -name '*.exe' -o -name '*.tar.gz' -o -name '*.zip' -o -name 'AcerPopGoCompanion-linux-x64' \
+          \) -exec cp -v {} out/ \;
+          ls -la out/
+
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "name=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: Acer PopGo Companion ${{ steps.tag.outputs.name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## Acer PopGo Companion ${{ steps.tag.outputs.name }}
+
+            Unofficial companion for the Acer PopGo wireless mouse.
+
+            ### Downloads
+            | Platform | File |
+            |----------|------|
+            | **Windows x64** | `AcerPopGoCompanion-windows-x64.exe` |
+            | **Linux x64** | `AcerPopGoCompanion-linux-x64.tar.gz` |
+            | **macOS Intel** | `AcerPopGoCompanion-macos-x64.zip` |
+            | **macOS Apple Silicon** | `AcerPopGoCompanion-macos-arm64.zip` |
+
+            ### Notes
+            - Use the **2.4 GHz USB dongle** for battery readout (`VID:PID 32C2:0066`).
+            - **Linux:** install the included `99-acer-popgo.rules` udev rule, then replug the dongle:
+              ```bash
+              sudo cp 99-acer-popgo.rules /etc/udev/rules.d/
+              sudo udevadm control --reload-rules && sudo udevadm trigger
+              ```
+            - **macOS:** if Gatekeeper blocks the app, right-click → Open, or:
+              `xattr -cr AcerPopGoCompanion.app`
+            - Not affiliated with Acer Inc.
+
+          files: out/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
